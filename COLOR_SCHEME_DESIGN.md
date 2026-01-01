@@ -90,13 +90,34 @@ From analyzing reference timezone maps:
 - **Pros**: Very easy to match visually
 - **Cons**: Colors repeat, loses uniqueness
 
-### 7. Progressive Hue + Lightness Wave ⭐ (New - Option 1)
+### 7. Progressive Hue + Lightness Wave ⭐ (Option 1 - Implemented)
 - **Method**:
   - Hue steps evenly through 360° spectrum
   - Lightness oscillates in sine wave (light, dark, light, dark...)
   - Adjacent zones differ in BOTH dimensions
 - **Pros**: Maintains progression, adds perceptual distance via 2nd dimension
-- **Cons**: TBD - needs testing
+- **Cons**: May create too much lightness variation, potentially disrupting visual flow
+
+### 8. Discrete Hue Families ⭐⭐ (Option B - Implemented)
+- **Method**:
+  - 7 color families: purple, pink, orange, yellow, green, teal, blue
+  - Each family gets 3-4 timezones
+  - Within family: lightness varies from dark to light
+  - Slight hue variation (±7.5°) within family for extra distinction
+- **Pros**:
+  - Closely matches proven reference design
+  - Enables semantic descriptions ("the lightest yellow one")
+  - Strong inter-family contrast, clear intra-family progression
+- **Cons**: More complex to tune family distributions
+
+## Visual Enhancements Implemented
+
+### Crosshatch Pattern for Fractional Offsets ✓
+- **Implementation**: SVG pattern overlay on timezones with fractional hour offsets
+- **Pattern**: White diagonal crosshatch (8x8px, 50% opacity)
+- **Affected timezones**: UTC+3:30, +4:30, +5:30, +5:45, +6:30, +9:30, +10:30, +12:45, -3:30, -9:30, etc.
+- **Purpose**: Visual indicator for unusual timezones that don't align to whole hours
+- **User benefit**: Immediately distinguishes standard vs. non-standard zones
 
 ## Reference Examples
 

@@ -30,6 +30,30 @@ class TimeZoneMap {
             .attr('viewBox', `0 0 ${this.width} ${this.height}`)
             .attr('preserveAspectRatio', 'xMidYMid meet');
 
+        // Add defs for patterns
+        const defs = this.svg.append('defs');
+
+        // Crosshatch pattern for fractional offset timezones
+        const pattern = defs.append('pattern')
+            .attr('id', 'crosshatch')
+            .attr('patternUnits', 'userSpaceOnUse')
+            .attr('width', 8)
+            .attr('height', 8);
+
+        // Diagonal lines going one way
+        pattern.append('path')
+            .attr('d', 'M0,0 l8,8 M-2,6 l4,4 M6,-2 l4,4')
+            .attr('stroke', '#ffffff')
+            .attr('stroke-width', 1)
+            .attr('opacity', 0.5);
+
+        // Diagonal lines going the other way
+        pattern.append('path')
+            .attr('d', 'M0,8 l8,-8 M-2,2 l4,-4 M6,10 l4,-4')
+            .attr('stroke', '#ffffff')
+            .attr('stroke-width', 1)
+            .attr('opacity', 0.5);
+
         // Add groups for layering
         this.svg.append('g').attr('class', 'countries-group');
         this.svg.append('g').attr('class', 'timezones-group');
@@ -123,7 +147,8 @@ class TimeZoneMap {
     renderTimezones() {
         const timezonesGroup = this.svg.select('.timezones-group');
 
-        timezonesGroup.selectAll('path')
+        // Render base timezone polygons
+        timezonesGroup.selectAll('path.timezone')
             .data(this.timezones)
             .join('path')
             .attr('class', 'timezone')
@@ -137,6 +162,18 @@ class TimeZoneMap {
             .on('mouseover', (event, d) => this.handleTimezoneHover(d))
             .on('mouseout', () => this.handleTimezoneLeave())
             .on('click', (event, d) => this.handleTimezoneClick(d));
+
+        // Add crosshatch overlay for fractional offset timezones
+        const fractionalTzs = this.timezones.filter(tz => tz.offset % 1 !== 0);
+
+        timezonesGroup.selectAll('path.timezone-pattern')
+            .data(fractionalTzs)
+            .join('path')
+            .attr('class', 'timezone-pattern')
+            .attr('d', d => this.path({ type: 'Feature', geometry: d.geometry }))
+            .attr('data-offset', d => d.offset)
+            .style('fill', 'url(#crosshatch)')
+            .style('pointer-events', 'none'); // Don't interfere with base timezone events
     }
 
     renderLabels() {
@@ -594,6 +631,50 @@ const ColorSchemes = {
                 const chroma = 0.15;
 
                 colorMap.set(tz.offset, ColorUtils.oklchToRgb(lightness, chroma, hue));
+            });
+
+            return (offset) => colorMap.get(offset);
+        }
+    },
+
+    discreteHueFamilies: {
+        name: 'Discrete Hue Families (Reference Style)',
+        description: 'Groups zones into 7 color families (purple, pink, orange, yellow, green, teal, blue). Within each family, lightness varies from dark to light. Enables semantic descriptions like "the lightest yellow one".',
+        generator: (timezones) => {
+            const sorted = [...timezones].sort((a, b) => a.offset - b.offset);
+            const colorMap = new Map();
+
+            // Define 7 color families with base hue and chroma
+            // Based on reference timezone map
+            const families = [
+                { name: 'purple', baseH: 280, baseC: 0.14, baseL: 0.58, count: 4 },  // Deep purple to lavender
+                { name: 'pink',   baseH: 340, baseC: 0.15, baseL: 0.70, count: 4 },  // Hot pink to pale pink
+                { name: 'orange', baseH: 30,  baseC: 0.16, baseL: 0.68, count: 4 },  // Dark orange to peach
+                { name: 'yellow', baseH: 80,  baseC: 0.15, baseL: 0.80, count: 4 },  // Golden to pale yellow
+                { name: 'green',  baseH: 130, baseC: 0.14, baseL: 0.72, count: 4 },  // Forest to lime
+                { name: 'teal',   baseH: 180, baseC: 0.13, baseL: 0.68, count: 4 },  // Teal to cyan
+                { name: 'blue',   baseH: 220, baseC: 0.13, baseL: 0.70, count: 3 }   // Deep blue to sky
+            ];
+
+            // Distribute timezones across families
+            let tzIndex = 0;
+            families.forEach(family => {
+                const zonesInFamily = Math.min(family.count, sorted.length - tzIndex);
+
+                for (let i = 0; i < zonesInFamily; i++) {
+                    const tz = sorted[tzIndex];
+
+                    // Vary lightness within family: darkest first, lightest last
+                    const t = zonesInFamily > 1 ? i / (zonesInFamily - 1) : 0.5;
+                    const lightness = family.baseL - 0.15 + (t * 0.30); // Range of 0.30 in lightness
+
+                    // Slight hue variation within family for extra distinction
+                    const hueOffset = (t - 0.5) * 15; // ±7.5 degrees
+                    const hue = family.baseH + hueOffset;
+
+                    colorMap.set(tz.offset, ColorUtils.oklchToRgb(lightness, family.baseC, hue));
+                    tzIndex++;
+                }
             });
 
             return (offset) => colorMap.get(offset);
