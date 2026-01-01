@@ -574,6 +574,32 @@ const ColorSchemes = {
         }
     },
 
+    hueStepsLightnessWave: {
+        name: 'Progressive Hue + Lightness Wave',
+        description: 'Hue steps evenly through spectrum (~13° per zone), while lightness oscillates high/low. Adjacent zones differ in BOTH hue and lightness for maximum local contrast while maintaining global progression.',
+        generator: (timezones) => {
+            const sorted = [...timezones].sort((a, b) => a.offset - b.offset);
+            const colorMap = new Map();
+
+            sorted.forEach((tz, i) => {
+                // Hue: step through full spectrum
+                const hue = (i / sorted.length) * 360;
+
+                // Lightness: oscillate between light and dark
+                // Creates a wave pattern: light, dark, light, dark...
+                const lightnessWave = Math.sin((i / sorted.length) * Math.PI * 6); // 6 full waves
+                const lightness = 0.68 + lightnessWave * 0.15; // Range: 0.53 to 0.83
+
+                // Moderate chroma for balanced saturation
+                const chroma = 0.15;
+
+                colorMap.set(tz.offset, ColorUtils.oklchToRgb(lightness, chroma, hue));
+            });
+
+            return (offset) => colorMap.get(offset);
+        }
+    },
+
     oklchDistinct: {
         name: 'OKLCH Distinct Hues',
         description: 'Evenly spaced hues in perceptually uniform OKLCH color space. Maximum differentiation between adjacent timezones.',
