@@ -106,10 +106,8 @@ class TimeZoneMap {
 
         console.log(`Loaded ${this.timezones.length} timezone groups (from ${tzData.features.length} features)`);
 
-        // Create color scale for timezones
-        this.colorScale = d3.scaleSequential()
-            .domain([d3.min(this.timezones, d => d.offset), d3.max(this.timezones, d => d.offset)])
-            .interpolator(d3.interpolateRainbow);
+        // Create color scale for timezones - using 4-hour time blocks
+        this.colorScale = ColorSchemes.timeBlocks4Hour.generator(this.timezones);
     }
 
 
