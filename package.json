@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Interactive world time zone map",
   "scripts": {
-    "test": "node screenshot-test.js"
+    "start": "node start-server.js",
+    "generate-tz": "node generate-timezones-advanced.js",
+    "test": "node simple-test.js"
   },
   "devDependencies": {
     "playwright": "^1.40.0",
