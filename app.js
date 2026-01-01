@@ -758,321 +758,91 @@ const ColorSchemes = {
             return (offset) => colorMap.get(offset);
         }
     },
-
-    oklchDistinct: {
-        name: 'OKLCH Distinct Hues',
-        description: 'Evenly spaced hues in perceptually uniform OKLCH color space. Maximum differentiation between adjacent timezones.',
-        generator: (timezones) => {
-            const sorted = [...timezones].sort((a, b) => a.offset - b.offset);
-            const colorMap = new Map();
-            sorted.forEach((tz, i) => {
-                const hue = (i / sorted.length) * 360;
-                colorMap.set(tz.offset, ColorUtils.oklchToRgb(0.75, 0.15, hue));
-            });
-            return (offset) => colorMap.get(offset);
-        }
-    },
-
-    alternatingContrast: {
-        name: 'Alternating High Contrast',
-        description: 'Adjacent timezones get maximally different colors. Easy to distinguish neighbors.',
-        generator: (timezones) => {
-            const sorted = [...timezones].sort((a, b) => a.offset - b.offset);
-            const colorMap = new Map();
-            sorted.forEach((tz, i) => {
-                // Alternate between opposite sides of color wheel
-                const hue = (i % 2 === 0) ? (i / 2) * (360 / Math.ceil(sorted.length / 2)) :
-                                             180 + ((i - 1) / 2) * (360 / Math.floor(sorted.length / 2));
-                const lightness = 0.7 + (i % 3) * 0.1; // Vary lightness too
-                colorMap.set(tz.offset, ColorUtils.oklchToRgb(lightness, 0.15, hue % 360));
-            });
-            return (offset) => colorMap.get(offset);
-        }
-    },
-
-    timeOfDay: {
-        name: 'Time of Day (Semantic)',
-        description: 'Color represents current time of day in that zone: Yellow=morning, Blue=afternoon, Purple=evening, Dark=night. Conveys real information!',
-        generator: (timezones) => {
-            const colorMap = new Map();
-            const timeColors = {
-                morning: ColorUtils.oklchToRgb(0.85, 0.15, 80),   // Warm yellow
-                afternoon: ColorUtils.oklchToRgb(0.75, 0.15, 220), // Sky blue
-                evening: ColorUtils.oklchToRgb(0.65, 0.15, 280),   // Purple
-                night: ColorUtils.oklchToRgb(0.45, 0.12, 260)      // Dark blue
-            };
-            timezones.forEach(tz => {
-                const hour = ColorUtils.getHourInTimezone(tz.offset);
-                const timeOfDay = ColorUtils.getTimeOfDay(hour);
-                colorMap.set(tz.offset, timeColors[timeOfDay]);
-            });
-            return (offset) => colorMap.get(offset);
-        }
-    },
-
-    timeOfDayHueRotate: {
-        name: 'Time of Day + Hue Variation',
-        description: 'Groups by time of day (warmth/brightness), then rotates hue within each group to distinguish individual timezones.',
-        generator: (timezones) => {
-            // Group timezones by time of day
-            const groups = { morning: [], afternoon: [], evening: [], night: [] };
-            timezones.forEach(tz => {
-                const hour = ColorUtils.getHourInTimezone(tz.offset);
-                const timeOfDay = ColorUtils.getTimeOfDay(hour);
-                groups[timeOfDay].push(tz);
-            });
-
-            // Sort each group by offset for consistent hue assignment
-            Object.values(groups).forEach(group => group.sort((a, b) => a.offset - b.offset));
-
-            const colorMap = new Map();
-
-            // Define base parameters for each time of day
-            const timeParams = {
-                morning:   { baseL: 0.85, baseC: 0.15, baseH: 70,  hueRange: 40 },  // Yellow-orange range
-                afternoon: { baseL: 0.75, baseC: 0.15, baseH: 200, hueRange: 60 },  // Cyan-blue range
-                evening:   { baseL: 0.65, baseC: 0.15, baseH: 280, hueRange: 50 },  // Purple-magenta range
-                night:     { baseL: 0.50, baseC: 0.13, baseH: 250, hueRange: 40 }   // Dark blue range
-            };
-
-            // Assign colors within each group
-            Object.entries(groups).forEach(([timeOfDay, tzList]) => {
-                const params = timeParams[timeOfDay];
-                tzList.forEach((tz, i) => {
-                    const hueOffset = tzList.length > 1
-                        ? (i / (tzList.length - 1)) * params.hueRange - params.hueRange / 2
-                        : 0;
-                    const hue = params.baseH + hueOffset;
-                    colorMap.set(tz.offset, ColorUtils.oklchToRgb(params.baseL, params.baseC, hue));
-                });
-            });
-
-            return (offset) => colorMap.get(offset);
-        }
-    },
-
-    timeOfDayLightnessShift: {
-        name: 'Time of Day + Lightness Variation',
-        description: 'Groups by time of day (base warmth), then varies lightness within each group. Subtle but effective.',
-        generator: (timezones) => {
-            const groups = { morning: [], afternoon: [], evening: [], night: [] };
-            timezones.forEach(tz => {
-                const hour = ColorUtils.getHourInTimezone(tz.offset);
-                const timeOfDay = ColorUtils.getTimeOfDay(hour);
-                groups[timeOfDay].push(tz);
-            });
-
-            Object.values(groups).forEach(group => group.sort((a, b) => a.offset - b.offset));
-
-            const colorMap = new Map();
-
-            const timeParams = {
-                morning:   { baseL: 0.85, lRange: 0.15, baseC: 0.15, baseH: 75 },
-                afternoon: { baseL: 0.75, lRange: 0.15, baseC: 0.15, baseH: 210 },
-                evening:   { baseL: 0.65, lRange: 0.12, baseC: 0.15, baseH: 285 },
-                night:     { baseL: 0.50, lRange: 0.12, baseC: 0.13, baseH: 255 }
-            };
-
-            Object.entries(groups).forEach(([timeOfDay, tzList]) => {
-                const params = timeParams[timeOfDay];
-                tzList.forEach((tz, i) => {
-                    const lightnessOffset = tzList.length > 1
-                        ? (i / (tzList.length - 1)) * params.lRange - params.lRange / 2
-                        : 0;
-                    const lightness = params.baseL + lightnessOffset;
-                    colorMap.set(tz.offset, ColorUtils.oklchToRgb(lightness, params.baseC, params.baseH));
-                });
-            });
-
-            return (offset) => colorMap.get(offset);
-        }
-    },
-
-    timeOfDayChromaShift: {
-        name: 'Time of Day + Chroma Variation',
-        description: 'Groups by time of day, then varies color saturation within each group. More saturated = more distinct.',
-        generator: (timezones) => {
-            const groups = { morning: [], afternoon: [], evening: [], night: [] };
-            timezones.forEach(tz => {
-                const hour = ColorUtils.getHourInTimezone(tz.offset);
-                const timeOfDay = ColorUtils.getTimeOfDay(hour);
-                groups[timeOfDay].push(tz);
-            });
-
-            Object.values(groups).forEach(group => group.sort((a, b) => a.offset - b.offset));
-
-            const colorMap = new Map();
-
-            const timeParams = {
-                morning:   { baseL: 0.85, baseC: 0.15, cRange: 0.08, baseH: 75 },
-                afternoon: { baseL: 0.75, baseC: 0.15, cRange: 0.08, baseH: 210 },
-                evening:   { baseL: 0.65, baseC: 0.15, cRange: 0.08, baseH: 285 },
-                night:     { baseL: 0.50, baseC: 0.13, cRange: 0.06, baseH: 255 }
-            };
-
-            Object.entries(groups).forEach(([timeOfDay, tzList]) => {
-                const params = timeParams[timeOfDay];
-                tzList.forEach((tz, i) => {
-                    const chromaOffset = tzList.length > 1
-                        ? (i / (tzList.length - 1)) * params.cRange - params.cRange / 2
-                        : 0;
-                    const chroma = Math.max(0.05, params.baseC + chromaOffset);
-                    colorMap.set(tz.offset, ColorUtils.oklchToRgb(params.baseL, chroma, params.baseH));
-                });
-            });
-
-            return (offset) => colorMap.get(offset);
-        }
-    },
-
-    timeOfDayHueLightness: {
-        name: 'Time of Day + Hue & Lightness',
-        description: 'Groups by time of day, then varies BOTH hue and lightness within groups. Maximum distinction while preserving semantic meaning.',
-        generator: (timezones) => {
-            const groups = { morning: [], afternoon: [], evening: [], night: [] };
-            timezones.forEach(tz => {
-                const hour = ColorUtils.getHourInTimezone(tz.offset);
-                const timeOfDay = ColorUtils.getTimeOfDay(hour);
-                groups[timeOfDay].push(tz);
-            });
-
-            Object.values(groups).forEach(group => group.sort((a, b) => a.offset - b.offset));
-
-            const colorMap = new Map();
-
-            const timeParams = {
-                morning:   { baseL: 0.85, lRange: 0.12, baseC: 0.16, baseH: 70,  hueRange: 35 },
-                afternoon: { baseL: 0.75, lRange: 0.12, baseC: 0.16, baseH: 200, hueRange: 50 },
-                evening:   { baseL: 0.65, lRange: 0.10, baseC: 0.16, baseH: 280, hueRange: 45 },
-                night:     { baseL: 0.50, lRange: 0.10, baseC: 0.14, baseH: 250, hueRange: 35 }
-            };
-
-            Object.entries(groups).forEach(([timeOfDay, tzList]) => {
-                const params = timeParams[timeOfDay];
-                tzList.forEach((tz, i) => {
-                    const t = tzList.length > 1 ? i / (tzList.length - 1) : 0.5;
-                    const hueOffset = (t - 0.5) * params.hueRange;
-                    const lightnessOffset = (t - 0.5) * params.lRange;
-                    const hue = params.baseH + hueOffset;
-                    const lightness = params.baseL + lightnessOffset;
-                    colorMap.set(tz.offset, ColorUtils.oklchToRgb(lightness, params.baseC, hue));
-                });
-            });
-
-            return (offset) => colorMap.get(offset);
-        }
-    },
-
-    warmCoolDiverge: {
-        name: 'Warm/Cool Diverging',
-        description: 'Warm colors for positive UTC offsets (east), cool colors for negative (west). Centered at UTC+0.',
-        generator: (timezones) => {
-            const maxOffset = d3.max(timezones, d => Math.abs(d.offset));
-            return (offset) => {
-                if (offset === 0) return ColorUtils.oklchToRgb(0.75, 0.05, 120); // Neutral green
-                const normalized = offset / maxOffset;
-                if (offset > 0) {
-                    // Warm colors: yellow to red
-                    const hue = 60 - (normalized * 20); // 60 (yellow) to 40 (orange-red)
-                    return ColorUtils.oklchToRgb(0.75, 0.15, hue);
-                } else {
-                    // Cool colors: cyan to blue
-                    const hue = 220 + (normalized * 20); // 200 (cyan) to 240 (blue)
-                    return ColorUtils.oklchToRgb(0.75, 0.15, hue);
-                }
-            };
-        }
-    },
-
-    categoricalBold: {
-        name: 'Categorical Bold (8 Colors)',
-        description: 'Small set of maximally distinct bold colors that repeat. Very easy to match by eye.',
-        generator: (timezones) => {
-            // 8 maximally distinct colors in OKLCH space
-            const palette = [
-                ColorUtils.oklchToRgb(0.65, 0.20, 30),   // Red-orange
-                ColorUtils.oklchToRgb(0.80, 0.18, 140),  // Green
-                ColorUtils.oklchToRgb(0.70, 0.20, 260),  // Blue
-                ColorUtils.oklchToRgb(0.85, 0.18, 80),   // Yellow
-                ColorUtils.oklchToRgb(0.60, 0.18, 320),  // Magenta
-                ColorUtils.oklchToRgb(0.75, 0.16, 180),  // Cyan
-                ColorUtils.oklchToRgb(0.70, 0.18, 0),    // Red
-                ColorUtils.oklchToRgb(0.75, 0.15, 110),  // Lime
-            ];
-            const sorted = [...timezones].sort((a, b) => a.offset - b.offset);
-            const colorMap = new Map();
-            sorted.forEach((tz, i) => {
-                colorMap.set(tz.offset, palette[i % palette.length]);
-            });
-            return (offset) => colorMap.get(offset);
-        }
-    }
 };
 
-// Color Scheme Prototype Manager
-class ColorSchemePrototypes {
-    constructor(mapInstance) {
-        this.mapInstance = mapInstance;
-        this.currentScheme = 'rainbow';
-        this.render();
-    }
+// Removed other color schemes - preserved in git commit 330d5cd
 
-    render() {
-        const container = d3.select('#prototype-list');
-        container.html(''); // Clear existing
+// Clock Face Visualization  
+function renderClockFace() {
+    const container = d3.select('#color-legend');
+    const size = 200;
+    const centerX = size / 2;
+    const centerY = size / 2;
+    const radius = 80;
 
-        Object.entries(ColorSchemes).forEach(([key, scheme]) => {
-            const item = container.append('div')
-                .attr('class', 'prototype-item');
+    const svg = container.append('svg')
+        .attr('viewBox', `0 0 ${size} ${size}`)
+        .attr('width', size)
+        .attr('height', size);
 
-            const header = item.append('div')
-                .attr('class', 'prototype-header');
+    // Time block definitions (matching the color scheme)
+    const blocks = [
+        { start: 0, end: 4, label: '12-3am', color: ColorUtils.oklchToRgb(0.50, 0.18, 240) }, // Dark blue
+        { start: 4, end: 8, label: '4-7am', color: ColorUtils.oklchToRgb(0.55, 0.16, 35) },   // Brown
+        { start: 8, end: 12, label: '8-11am', color: ColorUtils.oklchToRgb(0.65, 0.20, 350) }, // Red/pink
+        { start: 12, end: 16, label: '12-3pm', color: ColorUtils.oklchToRgb(0.70, 0.20, 40) }, // Orange
+        { start: 16, end: 20, label: '4-7pm', color: ColorUtils.oklchToRgb(0.80, 0.19, 85) },  // Yellow
+        { start: 20, end: 24, label: '8-11pm', color: ColorUtils.oklchToRgb(0.65, 0.18, 140) } // Green
+    ];
 
-            header.append('div')
-                .attr('class', 'prototype-name')
-                .text(scheme.name);
+    // Draw clock segments
+    blocks.forEach(block => {
+        const startAngle = (block.start / 24) * 2 * Math.PI - Math.PI / 2;
+        const endAngle = (block.end / 24) * 2 * Math.PI - Math.PI / 2;
 
-            const btn = header.append('button')
-                .attr('class', 'apply-scheme-btn')
-                .classed('active', key === this.currentScheme)
-                .text(key === this.currentScheme ? '✓ Active' : 'Apply')
-                .on('click', () => this.applyScheme(key));
+        const arc = d3.arc()
+            .innerRadius(radius * 0.4)
+            .outerRadius(radius)
+            .startAngle(startAngle)
+            .endAngle(endAngle);
 
-            item.append('div')
-                .attr('class', 'prototype-description')
-                .text(scheme.description);
+        svg.append('path')
+            .attr('d', arc)
+            .attr('transform', `translate(${centerX}, ${centerY})`)
+            .attr('fill', block.color)
+            .attr('stroke', '#fff')
+            .attr('stroke-width', 2);
 
-            // Render color swatches
-            const swatches = item.append('div')
-                .attr('class', 'color-swatches');
+        // Add label
+        const midAngle = (startAngle + endAngle) / 2;
+        const labelRadius = radius * 0.7;
+        const labelX = centerX + Math.cos(midAngle) * labelRadius;
+        const labelY = centerY + Math.sin(midAngle) * labelRadius;
 
-            const colorFunction = scheme.generator(this.mapInstance.timezones);
-            const sorted = [...this.mapInstance.timezones].sort((a, b) => a.offset - b.offset);
+        svg.append('text')
+            .attr('x', labelX)
+            .attr('y', labelY)
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'middle')
+            .attr('fill', '#fff')
+            .attr('font-size', '11px')
+            .attr('font-weight', 'bold')
+            .text(block.label);
+    });
 
-            sorted.forEach(tz => {
-                const color = colorFunction(tz.offset);
-                swatches.append('div')
-                    .attr('class', 'color-swatch')
-                    .attr('data-offset', tz.offsetString)
-                    .style('background-color', color);
-            });
-        });
-    }
+    // Center circle
+    svg.append('circle')
+        .attr('cx', centerX)
+        .attr('cy', centerY)
+        .attr('r', radius * 0.35)
+        .attr('fill', '#f5f5f5')
+        .attr('stroke', '#333')
+        .attr('stroke-width', 2);
 
-    applyScheme(key) {
-        this.currentScheme = key;
-        const colorFunction = ColorSchemes[key].generator(this.mapInstance.timezones);
-        this.mapInstance.setColorScheme(colorFunction);
-        this.render(); // Update button states
-    }
+    // Center text
+    svg.append('text')
+        .attr('x', centerX)
+        .attr('y', centerY)
+        .attr('text-anchor', 'middle')
+        .attr('dominant-baseline', 'middle')
+        .attr('font-size', '12px')
+        .attr('font-weight', 'bold')
+        .attr('fill', '#333')
+        .text('24hr');
 }
 
 // Initialize the application when DOM is ready
-let mapInstance;
 document.addEventListener('DOMContentLoaded', () => {
-    mapInstance = new TimeZoneMap();
-    // Wait a bit for map to load, then render prototypes
-    setTimeout(() => {
-        new ColorSchemePrototypes(mapInstance);
-    }, 1000);
+    new TimeZoneMap();
+    renderClockFace();
 });
