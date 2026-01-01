@@ -177,10 +177,14 @@ this.height = 600;  // Maintain aspect ratio
 
 ## License
 
-This project is open source and available for educational and personal use.
+This project is open source and available for educational and personal use. Contact [Option Zero](https://optionzero.co) for commercial licensing.
 
 ## Credits
 
 - Map data: [Natural Earth](https://www.naturalearthdata.com/)
 - Visualization library: [D3.js](https://d3js.org/)
 - TopoJSON: [TopoJSON](https://github.com/topojson/topojson)
+
+## See also
+
+https://xkcd.com/1335/
