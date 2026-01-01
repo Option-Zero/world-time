@@ -701,6 +701,66 @@ const ColorSchemes = {
         }
     },
 
+    timeBlocks4Hour: {
+        name: 'Time Blocks (4-Hour, High Saturation)',
+        description: 'Groups by current time in 4-hour blocks: 0-3am=dark blue, 4-7am=brown, 8-11am=red/pink, 12-3pm=orange, 4-7pm=yellow, 8-11pm=green. High saturation for bold colors.',
+        generator: (timezones) => {
+            const colorMap = new Map();
+
+            // Group timezones by their current 4-hour time block
+            const blocks = {
+                'midnight': [],    // 0-3
+                'earlyMorning': [], // 4-7
+                'morning': [],      // 8-11
+                'afternoon': [],    // 12-15
+                'evening': [],      // 16-19
+                'night': []         // 20-23
+            };
+
+            timezones.forEach(tz => {
+                const hour = ColorUtils.getHourInTimezone(tz.offset);
+                if (hour >= 0 && hour < 4) blocks.midnight.push(tz);
+                else if (hour >= 4 && hour < 8) blocks.earlyMorning.push(tz);
+                else if (hour >= 8 && hour < 12) blocks.morning.push(tz);
+                else if (hour >= 12 && hour < 16) blocks.afternoon.push(tz);
+                else if (hour >= 16 && hour < 20) blocks.evening.push(tz);
+                else blocks.night.push(tz);
+            });
+
+            // Sort within each block by offset
+            Object.values(blocks).forEach(block => block.sort((a, b) => a.offset - b.offset));
+
+            // Define color parameters for each time block (higher chroma for saturation)
+            const blockColors = {
+                midnight:     { baseH: 240, baseC: 0.18, baseL: 0.50 },  // Dark blue
+                earlyMorning: { baseH: 35,  baseC: 0.16, baseL: 0.55 },  // Brown
+                morning:      { baseH: 350, baseC: 0.20, baseL: 0.65 },  // Red/pink
+                afternoon:    { baseH: 40,  baseC: 0.20, baseL: 0.70 },  // Orange
+                evening:      { baseH: 85,  baseC: 0.19, baseL: 0.80 },  // Yellow
+                night:        { baseH: 140, baseC: 0.18, baseL: 0.65 }   // Green
+            };
+
+            // Assign colors within each block
+            Object.entries(blocks).forEach(([blockName, tzList]) => {
+                const params = blockColors[blockName];
+                tzList.forEach((tz, i) => {
+                    const t = tzList.length > 1 ? i / (tzList.length - 1) : 0.5;
+
+                    // Vary lightness within block
+                    const lightness = params.baseL - 0.12 + (t * 0.24);
+
+                    // Vary hue slightly for distinction
+                    const hueOffset = (t - 0.5) * 25; // ±12.5 degrees
+                    const hue = params.baseH + hueOffset;
+
+                    colorMap.set(tz.offset, ColorUtils.oklchToRgb(lightness, params.baseC, hue));
+                });
+            });
+
+            return (offset) => colorMap.get(offset);
+        }
+    },
+
     oklchDistinct: {
         name: 'OKLCH Distinct Hues',
         description: 'Evenly spaced hues in perceptually uniform OKLCH color space. Maximum differentiation between adjacent timezones.',
