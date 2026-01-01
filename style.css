@@ -69,9 +69,10 @@ h1 {
 }
 
 .timezone-label {
-    pointer-events: none;
+    pointer-events: all; /* Enable hovering labels */
     user-select: none;
     transition: all 0.2s ease;
+    cursor: pointer;
 }
 
 .timezone-label.highlighted rect {

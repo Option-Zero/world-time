@@ -200,10 +200,14 @@ class TimeZoneMap {
 
     renderLabelRow(container, timezones, y, position) {
         const spacing = this.width / (timezones.length + 1);
+        const staggerAmount = 15; // Vertical offset for zigzag
 
         timezones.forEach((tz, i) => {
             const x = (i + 1) * spacing;
-            this.renderLabel(container, tz, x, y, position);
+            // Alternate up and down for zigzag pattern
+            const yOffset = (i % 2 === 0) ? 0 : staggerAmount;
+            const adjustedY = position === 'top' ? y + yOffset : y - yOffset;
+            this.renderLabel(container, tz, x, adjustedY, position);
         });
     }
 
@@ -213,7 +217,10 @@ class TimeZoneMap {
         // Create label group
         const labelGroup = container.append('g')
             .attr('class', 'timezone-label')
-            .attr('data-offset', tz.offset);
+            .attr('data-offset', tz.offset)
+            .on('mouseover', () => this.handleTimezoneHover(tz))
+            .on('mouseout', () => this.handleTimezoneLeave())
+            .on('click', () => this.handleTimezoneClick(tz));
 
         // Draw callout line to timezone
         const targetPoint = position === 'top' ? tz.north : tz.south;
@@ -230,9 +237,9 @@ class TimeZoneMap {
                 .attr('opacity', 0.6);
         }
 
-        // Background rectangle
-        const bgWidth = 80;
-        const bgHeight = 32;
+        // Background rectangle - narrower
+        const bgWidth = 55;
+        const bgHeight = 30;
         labelGroup.append('rect')
             .attr('x', x - bgWidth / 2)
             .attr('y', y - bgHeight / 2)
@@ -242,16 +249,17 @@ class TimeZoneMap {
             .attr('opacity', 0.9)
             .attr('rx', 4);
 
-        // Offset text
+        // Abbreviated offset text (e.g., "+8" instead of "UTC+8")
+        const abbreviatedOffset = tz.offsetString.replace('UTC', '');
         labelGroup.append('text')
             .attr('class', 'label-offset')
             .attr('x', x)
-            .attr('y', y - 4)
+            .attr('y', y - 3)
             .attr('text-anchor', 'middle')
             .attr('fill', '#fff')
             .attr('font-size', '11px')
             .attr('font-weight', 'bold')
-            .text(tz.offsetString);
+            .text(abbreviatedOffset);
 
         // Time text
         labelGroup.append('text')

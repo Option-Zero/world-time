@@ -160,8 +160,11 @@ this.height = 600;  // Maintain aspect ratio
 
 ## Known Limitations
 
-- Timezone boundaries are simplified to vertical stripes for better performance and clarity at world-map scale
-- Daylight Saving Time (DST) changes are not automatically reflected (uses current browser offset)
+- **No DST Support**: The app does not handle Daylight Saving Time transitions. Times are calculated using current UTC offsets only. This means:
+  - Timezones are grouped by their **current** UTC offset (e.g., EST and CDT might be grouped together when both are at UTC-5)
+  - Time calculations may be incorrect for regions during DST transitions
+  - Historical or future timezone offsets are not considered
+- Complex timezone polygons: Uses Natural Earth data which may not reflect recent political boundary changes
 - Some small island nations may not be clearly visible at the world-map scale
 
 ## Future Enhancements
