@@ -504,11 +504,40 @@ class TimeZoneMap {
 
 // OKLCH Color Utilities
 const ColorUtils = {
-    // Convert OKLCH to RGB (simplified - good enough for web colors)
+    // Convert OKLCH to RGB
     // L: 0-1 (lightness), C: 0-0.4 (chroma), H: 0-360 (hue)
     oklchToRgb(l, c, h) {
-        // Convert to OKLCH string (CSS now supports this natively in modern browsers)
-        return `oklch(${l * 100}% ${c} ${h})`;
+        // Convert OKLCH to Lab
+        const hRad = (h * Math.PI) / 180;
+        const a = c * Math.cos(hRad);
+        const b = c * Math.sin(hRad);
+
+        // Convert OKLab to linear RGB (simplified conversion)
+        // This is an approximation - good enough for our purposes
+        const L = l;
+        const M = l - 0.1618 * a - 0.0419 * b;
+        const S = l - 0.0419 * a + 0.1618 * b;
+
+        let r = 4.0767 * L - 3.3077 * M + 0.2310 * S;
+        let g = -1.2684 * L + 2.6097 * M - 0.3413 * S;
+        let bl = -0.0042 * L - 0.7034 * M + 1.7076 * S;
+
+        // Apply gamma correction
+        const gammaCorrect = (c) => {
+            c = Math.max(0, Math.min(1, c));
+            return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1/2.4) - 0.055;
+        };
+
+        r = Math.round(gammaCorrect(r) * 255);
+        g = Math.round(gammaCorrect(g) * 255);
+        bl = Math.round(gammaCorrect(bl) * 255);
+
+        // Clamp values
+        r = Math.max(0, Math.min(255, r));
+        g = Math.max(0, Math.min(255, g));
+        bl = Math.max(0, Math.min(255, bl));
+
+        return `rgb(${r}, ${g}, ${bl})`;
     },
 
     // Get current hour in a timezone (0-23)
