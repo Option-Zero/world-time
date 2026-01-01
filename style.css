@@ -61,16 +61,26 @@ h1 {
 
 .timezone:hover,
 .timezone.highlighted {
-    /* Brighten the fill color */
-    filter: brightness(1.3);
+    /* Darken for better contrast */
+    filter: brightness(0.7);
     stroke: #000;
-    stroke-width: 1.5;
-    stroke-opacity: 0.8;
+    stroke-width: 2;
+    stroke-opacity: 1;
 }
 
 .timezone-label {
     pointer-events: none;
     user-select: none;
+    transition: all 0.2s ease;
+}
+
+.timezone-label.highlighted rect {
+    stroke: #000;
+    stroke-width: 3;
+}
+
+.timezone-label.highlighted text {
+    font-weight: bold;
 }
 
 .timezone-label text {

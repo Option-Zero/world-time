@@ -4,13 +4,14 @@ class TimeZoneMap {
     constructor() {
         this.svg = d3.select('#world-map');
         this.width = 1200;
-        this.height = 600;
+        this.height = 700; // Increased for label space
+        this.mapCenterY = 350; // Center the map vertically
         this.pinnedTimezones = new Set();
         this.highlightedTz = null;
 
         this.projection = d3.geoNaturalEarth1()
             .scale(190)
-            .translate([this.width / 2, this.height / 2]);
+            .translate([this.width / 2, this.mapCenterY]);
 
         this.path = d3.geoPath().projection(this.projection);
 
@@ -141,7 +142,8 @@ class TimeZoneMap {
     renderLabels() {
         const labelsGroup = this.svg.select('.labels-group');
         const margin = 10;
-        const labelHeight = 40;
+        const topLabelY = 50; // Top row position
+        const bottomLabelY = this.height - 50; // Bottom row position
 
         // Calculate centroid and bounds for each timezone
         const tzWithGeometry = this.timezones.map(tz => {
@@ -183,15 +185,15 @@ class TimeZoneMap {
         });
 
         // Render bottom row
-        this.renderLabelRow(labelsGroup, bottomRow, this.height - labelHeight, 'bottom');
+        this.renderLabelRow(labelsGroup, bottomRow, bottomLabelY, 'bottom');
 
         // Render top row
-        this.renderLabelRow(labelsGroup, topRow, labelHeight, 'top');
+        this.renderLabelRow(labelsGroup, topRow, topLabelY, 'top');
 
         // Render corner labels (if any overflow)
         corners.forEach((tz, i) => {
-            const x = i % 2 === 0 ? margin : this.width - margin;
-            const y = i < 2 ? labelHeight : this.height - labelHeight;
+            const x = i % 2 === 0 ? margin + 50 : this.width - margin - 50;
+            const y = i < 2 ? topLabelY : bottomLabelY;
             this.renderLabel(labelsGroup, tz, x, y, 'corner');
         });
     }
@@ -349,8 +351,14 @@ class TimeZoneMap {
         this.svg.selectAll('.timezone')
             .classed('highlighted', d => d.offset === this.highlightedTz);
 
-        // Highlight corresponding panel
+        // Highlight corresponding label
         const highlightedOffset = this.highlightedTz;
+        this.svg.selectAll('.timezone-label')
+            .classed('highlighted', function() {
+                return parseFloat(this.dataset.offset) === highlightedOffset;
+            });
+
+        // Highlight corresponding panel
         d3.selectAll('.timezone-panel')
             .classed('highlighted', function() {
                 return parseFloat(this.dataset.offset) === highlightedOffset;
