@@ -23,6 +23,17 @@ class TimeZoneMap {
         await this.loadData();
         this.render();
         this.startTimeClock();
+        this.setupResizeHandler();
+    }
+
+    setupResizeHandler() {
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                this.renderPinnedCalloutLines();
+            }, 100);
+        });
     }
 
     setupSVG() {
@@ -71,6 +82,7 @@ class TimeZoneMap {
         this.svg.append('g').attr('class', 'timezones-group');
         this.svg.append('g').attr('class', 'countries-group');
         this.svg.append('g').attr('class', 'country-borders-group');
+        this.svg.append('g').attr('class', 'pinned-callout-lines-group');
         this.svg.append('g').attr('class', 'labels-group');
     }
 
@@ -148,6 +160,7 @@ class TimeZoneMap {
         this.renderCountryBorders();
         this.renderDayNightLine();
         this.renderTimezoneCallouts();
+        this.renderPinnedCallouts();
         this.renderTimezoneGrid();
     }
 
@@ -354,6 +367,150 @@ class TimeZoneMap {
         });
     }
 
+    renderPinnedCallouts() {
+        const container = d3.select('#pinned-callouts');
+        container.html('');
+
+        if (this.pinnedTimezones.size === 0) {
+            // Clear callout lines when no timezones are pinned
+            this.renderPinnedCalloutLines();
+            return;
+        }
+
+        // Get pinned timezones sorted by offset
+        const pinnedTzs = Array.from(this.pinnedTimezones)
+            .map(offset => this.timezones.find(tz => tz.offset === offset))
+            .filter(tz => tz !== undefined)
+            .sort((a, b) => a.offset - b.offset);
+
+        pinnedTzs.forEach(tz => {
+            const bgColor = this.colorScale(tz.offset);
+            
+            // Calculate perceived lightness to determine text color
+            const color = d3.color(bgColor);
+            const rgb = d3.rgb(color);
+            const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+            const textColor = luminance > 0.7 ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)';
+
+            const callout = container.append('div')
+                .attr('class', 'pinned-callout')
+                .attr('data-offset', tz.offset)
+                .style('background-color', bgColor)
+                .style('color', textColor)
+                .on('click', () => this.handleCardClick(tz))
+                .on('mouseover', () => this.handleTimezoneHover(tz))
+                .on('mouseout', () => this.handleTimezoneLeave());
+
+            if (tz.offset % 1 !== 0) {
+                const fraction = Math.abs(tz.offset % 1);
+                if (Math.abs(fraction - 0.5) < 0.01) {
+                    callout.style('background-image', 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 6px)');
+                } else {
+                    callout.style('background-image', 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 6px), repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 6px)');
+                }
+            }
+
+            const header = callout.append('div').attr('class', 'pinned-callout-header');
+            header.append('div').attr('class', 'pinned-offset').text(tz.offsetString);
+            header.append('div')
+                .attr('class', 'pinned-time')
+                .attr('id', 'pinned-time-' + tz.offset.toString().replace('.', '_').replace('-', 'neg'))
+                .text(this.getCurrentTimeFull(tz.offset));
+
+            const names = tz.cities.slice(0, 3).concat(tz.names.filter(name => isNaN(parseFloat(name))).slice(0, 2));
+            if (names.length > 0) {
+                callout.append('div')
+                    .attr('class', 'pinned-location')
+                    .text(names.slice(0, 3).join(', '));
+            }
+        });
+
+        // Draw lines from timezones to pinned callouts
+        this.renderPinnedCalloutLines();
+    }
+
+    renderPinnedCalloutLines() {
+        const linesGroup = this.svg.select('.pinned-callout-lines-group');
+        linesGroup.selectAll('*').remove();
+
+        if (this.pinnedTimezones.size === 0) {
+            return;
+        }
+
+        // Use requestAnimationFrame to ensure DOM is updated
+        requestAnimationFrame(() => {
+            const svgElement = this.svg.node();
+            if (!svgElement) return;
+
+            const svgRect = svgElement.getBoundingClientRect();
+            const svgViewBox = this.svg.attr('viewBox').split(' ').map(Number);
+            const viewBoxWidth = svgViewBox[2];
+            const viewBoxHeight = svgViewBox[3];
+
+            // Get pinned timezones sorted by offset
+            const pinnedTzs = Array.from(this.pinnedTimezones)
+                .map(offset => this.timezones.find(tz => tz.offset === offset))
+                .filter(tz => tz !== undefined)
+                .sort((a, b) => a.offset - b.offset);
+
+            pinnedTzs.forEach((tz) => {
+                // Get the timezone bounds and find the bottom (southernmost) point
+                const bounds = d3.geoBounds({ type: 'Feature', geometry: tz.geometry });
+                const centroid = d3.geoCentroid({ type: 'Feature', geometry: tz.geometry });
+                
+                // Use the centroid longitude but the southernmost latitude (bottom of timezone)
+                const bottomPoint = [centroid[0], bounds[0][1]];
+                const projected = this.projection(bottomPoint);
+
+                if (!projected || projected[0] < 0 || projected[0] > this.width) {
+                    return;
+                }
+
+                // Find the corresponding callout element
+                const calloutElement = document.querySelector(`.pinned-callout[data-offset="${tz.offset}"]`);
+                if (!calloutElement) {
+                    return;
+                }
+
+                const calloutRect = calloutElement.getBoundingClientRect();
+
+                // Calculate the callout top center position relative to the SVG
+                const calloutTopCenterX = calloutRect.left + calloutRect.width / 2 - svgRect.left;
+                const calloutTopCenterY = calloutRect.top - svgRect.top;
+
+                // Convert screen coordinates to SVG viewBox coordinates
+                const scaleX = viewBoxWidth / svgRect.width;
+                const scaleY = viewBoxHeight / svgRect.height;
+                const endX = calloutTopCenterX * scaleX;
+                const endY = calloutTopCenterY * scaleY;
+
+                // Start point: timezone centroid on map (already in SVG coordinates)
+                const startX = projected[0];
+                const startY = projected[1];
+
+                // Only draw if end point is below the map
+                if (endY < this.height - 100) {
+                    return; // Don't draw if callout is too high
+                }
+
+                const color = this.colorScale(tz.offset);
+
+                // Draw line from timezone to callout
+                linesGroup.append('line')
+                    .attr('class', 'pinned-callout-line')
+                    .attr('x1', startX)
+                    .attr('y1', startY)
+                    .attr('x2', endX)
+                    .attr('y2', endY)
+                    .attr('stroke', color)
+                    .attr('stroke-width', 1.5)
+                    .attr('opacity', 0.6)
+                    .attr('stroke-dasharray', '4,2')
+                    .style('pointer-events', 'none');
+            });
+        });
+    }
+
     renderTimezoneGrid() {
         const container = d3.select('#timezone-grid');
         container.html('');
@@ -507,6 +664,13 @@ class TimeZoneMap {
             if (!calloutLabel.empty()) {
                 calloutLabel.text(this.getCurrentTimeShort(tz.offset));
             }
+
+            // Update pinned callout times
+            const pinnedTimeId = 'pinned-time-' + tz.offset.toString().replace('.', '_').replace('-', 'neg');
+            const pinnedTimeEl = document.getElementById(pinnedTimeId);
+            if (pinnedTimeEl) {
+                pinnedTimeEl.textContent = this.getCurrentTimeFull(tz.offset);
+            }
         });
     }
 
@@ -531,6 +695,12 @@ class TimeZoneMap {
             .classed('highlighted', function() {
                 return parseFloat(this.dataset.offset) === highlightedOffset;
             });
+
+        // Highlight corresponding pinned callout
+        d3.selectAll('.pinned-callout')
+            .classed('highlighted', function() {
+                return parseFloat(this.dataset.offset) === highlightedOffset;
+            });
     }
 
     handleCardClick(tz) {
@@ -546,6 +716,7 @@ class TimeZoneMap {
                 this.pinnedTimezones.delete(tz.offset);
                 card.classed('expanded', false);
             }
+            this.renderPinnedCallouts();
         } else {
             d3.selectAll('#timezone-grid .timezone-card:not(.pinned)').classed('expanded', false);
             card.classed('expanded', true);
