@@ -83,6 +83,13 @@ h1 {
     font-weight: bold;
 }
 
+.timezone-label.highlighted .callout-line {
+    stroke-width: 2.5;
+    stroke-dasharray: none;
+    opacity: 1;
+    stroke: #000;
+}
+
 .timezone-label text {
     font-size: 11px;
     fill: #333;
