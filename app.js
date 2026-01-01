@@ -129,7 +129,7 @@ class TimeZoneMap {
     render() {
         this.renderCountries();
         this.renderTimezones();
-        this.renderLabels();
+        this.renderTimezoneGrid();
     }
 
     renderCountries() {
