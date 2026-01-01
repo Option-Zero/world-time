@@ -284,6 +284,8 @@ class TimeZoneMap {
         };
 
         this.timezones.forEach(tz => {
+            // Skip fractional offsets
+            if (tz.offset % 1 !== 0) return;
             const hour = ColorUtils.getHourInTimezone(tz.offset);
             if (hour >= 0 && hour < 4) blocks.midnight.push(tz);
             else if (hour >= 4 && hour < 8) blocks.earlyMorning.push(tz);
@@ -345,8 +347,7 @@ class TimeZoneMap {
                 .attr('x', projected[0])
                 .attr('y', calloutY - 5)
                 .attr('text-anchor', 'middle')
-                .attr('font-size', '11px')
-                .attr('font-weight', 'bold')
+                .attr('font-size', '20px')
                 .attr('fill', color)
                 .attr('id', 'callout-time-' + tz.offset.toString().replace('.', '_').replace('-', 'neg'))
                 .text(this.getCurrentTimeShort(tz.offset));
