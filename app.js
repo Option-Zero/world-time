@@ -146,6 +146,7 @@ class TimeZoneMap {
         this.renderTimezones();
         this.renderCountries();
         this.renderCountryBorders();
+        this.renderDayNightLine();
         this.renderTimezoneCallouts();
         this.renderTimezoneGrid();
     }
@@ -177,6 +178,59 @@ class TimeZoneMap {
             .style('stroke-width', 0.5)
             .style('stroke-opacity', 0.4)
             .style('pointer-events', 'none');
+    }
+
+    renderDayNightLine() {
+        const now = new Date();
+
+        // Calculate solar declination (simplified - varies with season)
+        const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+        const solarDeclination = -23.44 * Math.cos((360 / 365) * (dayOfYear + 10) * Math.PI / 180);
+
+        // Calculate hour angle (longitude where sun is overhead)
+        const hours = now.getUTCHours() + now.getUTCMinutes() / 60;
+        const solarLongitude = (hours - 12) * 15; // 15 degrees per hour
+
+        // Generate terminator line points
+        const terminatorPoints = [];
+        for (let lat = -90; lat <= 90; lat += 1) {
+            // Calculate longitude where it's sunrise/sunset at this latitude
+            const cosHourAngle = -Math.tan(lat * Math.PI / 180) * Math.tan(solarDeclination * Math.PI / 180);
+
+            if (Math.abs(cosHourAngle) <= 1) {
+                const hourAngle = Math.acos(cosHourAngle) * 180 / Math.PI;
+                const lon1 = solarLongitude + hourAngle;
+                const lon2 = solarLongitude - hourAngle;
+
+                terminatorPoints.push([lon1, lat]);
+                terminatorPoints.push([lon2, lat]);
+            }
+        }
+
+        // Sort points to create a continuous line
+        terminatorPoints.sort((a, b) => a[1] - b[1]);
+
+        // Create GeoJSON line
+        const terminatorLine = {
+            type: 'LineString',
+            coordinates: terminatorPoints
+        };
+
+        // Draw the terminator line
+        const labelsGroup = this.svg.select('.labels-group');
+        labelsGroup.selectAll('.day-night-line').remove();
+
+        labelsGroup.append('path')
+            .datum(terminatorLine)
+            .attr('class', 'day-night-line')
+            .attr('d', this.path)
+            .style('fill', 'none')
+            .style('stroke', '#FFD700')
+            .style('stroke-width', 3)
+            .style('stroke-opacity', 0.8)
+            .style('stroke-dasharray', '10,5')
+            .style('pointer-events', 'none')
+            .style('filter', 'drop-shadow(0 0 2px rgba(0,0,0,0.5))');
     }
 
     renderTimezones() {
@@ -306,10 +360,20 @@ class TimeZoneMap {
         const sorted = [...this.timezones].sort((a, b) => a.offset - b.offset);
 
         sorted.forEach(tz => {
+            const bgColor = this.colorScale(tz.offset);
+
+            // Calculate perceived lightness to determine text color
+            const color = d3.color(bgColor);
+            const rgb = d3.rgb(color);
+            // Using relative luminance formula
+            const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+            const textColor = luminance > 0.7 ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)';
+
             const card = container.append('div')
                 .attr('class', 'timezone-card')
                 .attr('data-offset', tz.offset)
-                .style('background-color', this.colorScale(tz.offset))
+                .style('background-color', bgColor)
+                .style('color', textColor)
                 .on('click', () => this.handleCardClick(tz))
                 .on('mouseover', () => this.handleTimezoneHover(tz))
                 .on('mouseout', () => this.handleTimezoneLeave());
@@ -327,14 +391,21 @@ class TimeZoneMap {
             card.append('div').attr('class', 'pin-indicator').text('📌');
 
             const header = card.append('div').attr('class', 'card-header');
-            const abbreviatedOffset = tz.offsetString.replace('UTC', '');
-            header.append('div').attr('class', 'offset').text(abbreviatedOffset);
+            const title = header.append('div').attr('class', 'offset').text(tz.offsetString);
             header.append('div')
                 .attr('class', 'time-compact')
                 .attr('id', 'time-compact-' + tz.offset.toString().replace('.', '_').replace('-', 'neg'))
                 .text(this.getCurrentTimeShort(tz.offset));
 
             const expanded = card.append('div').attr('class', 'expanded-content');
+
+            // Add location header at the top of expanded content
+            const names = tz.cities.slice(0, 4).concat(tz.names.filter(name => isNaN(parseFloat(name))).slice(0, 4));
+            if (names.length > 0) {
+                expanded.append('div')
+                .attr('class', 'location-header')
+                .text(names.slice(0, 4).join(', '));
+            }
             expanded.append('div')
                 .attr('class', 'time-display')
                 .attr('id', 'time-full-' + tz.offset.toString().replace('.', '_').replace('-', 'neg'))
@@ -342,16 +413,16 @@ class TimeZoneMap {
 
             const browserOffset = -new Date().getTimezoneOffset() / 60;
             const relativeOffset = tz.offset - browserOffset;
-            let relativeText = 'Same as your timezone';
+            let relativeText = 'Your time zone';
 
             if (relativeOffset > 0) {
                 const hours = Math.floor(Math.abs(relativeOffset));
                 const minutes = Math.round((Math.abs(relativeOffset) % 1) * 60);
-                relativeText = minutes > 0 ? hours + 'h ' + minutes + 'm ahead of your timezone' : hours + ' hours ahead of your timezone';
+                relativeText = minutes > 0 ? hours + 'h ' + minutes + 'm ahead of your time zone' : hours + ' hours ahead of your time zone';
             } else if (relativeOffset < 0) {
                 const hours = Math.floor(Math.abs(relativeOffset));
                 const minutes = Math.round((Math.abs(relativeOffset) % 1) * 60);
-                relativeText = minutes > 0 ? hours + 'h ' + minutes + 'm behind your timezone' : hours + ' hours behind your timezone';
+                relativeText = minutes > 0 ? hours + 'h ' + minutes + 'm behind your time zone' : hours + ' hours behind your time zone';
             }
 
             expanded.append('div').attr('class', 'time-info').text(relativeText);
@@ -364,30 +435,6 @@ class TimeZoneMap {
                 .attr('target', '_blank')
                 .attr('rel', 'noopener noreferrer')
                 .text('Wikipedia →');
-
-            // Show cities if available
-            if (tz.cities && tz.cities.length > 0) {
-                const citiesList = expanded.append('div').attr('class', 'cities-list');
-                const citiesContainer = citiesList.append('div').attr('class', 'cities');
-                tz.cities.slice(0, 8).forEach(city => {
-                    citiesContainer.append('span').attr('class', 'city-tag').text(city);
-                });
-            } else if (tz.names && tz.names.length > 0) {
-                // Filter out numeric-only names for display, but keep at least one location
-                const validNames = tz.names.filter(name => isNaN(parseFloat(name)));
-                const displayNames = validNames.length > 0 ? validNames : [tz.offsetString];
-
-                const locationsList = expanded.append('div').attr('class', 'cities-list');
-                const locationsContainer = locationsList.append('div').attr('class', 'cities');
-                displayNames.slice(0, 8).forEach(name => {
-                    locationsContainer.append('span').attr('class', 'city-tag').text(name);
-                });
-            } else {
-                // Fallback: show the offset string
-                const locationsList = expanded.append('div').attr('class', 'cities-list');
-                const locationsContainer = locationsList.append('div').attr('class', 'cities');
-                locationsContainer.append('span').attr('class', 'city-tag').text(tz.offsetString);
-            }
         });
     }
 
