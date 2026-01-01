@@ -4,3 +4,18 @@ node_modules/
 .env
 screenshot*.png
 pnpm-lock.yaml
+
+# Development artifacts
+*.backup
+screenshot*.png
+test-screenshot.png
+clock-screenshot.png
+complex-polygons.png
+current-state.png
+final-screenshot.png
+final-with-colors.png
+map-improved-tz.png
+
+# Source data (keep only processed geojson)
+ne_timezones/
+ne_timezones.zip

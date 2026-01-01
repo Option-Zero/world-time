@@ -16,9 +16,7 @@ body {
 }
 
 header {
-    background-color: #fff;
     padding: 1rem 2rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     text-align: center;
 }
 
@@ -29,12 +27,7 @@ h1 {
 }
 
 #map-container {
-    background-color: #fff;
     margin: 1rem;
-    padding: 1rem;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    overflow: hidden;
 }
 
 #world-map {
@@ -44,9 +37,10 @@ h1 {
 }
 
 .country {
-    fill: #e8e8e8;
-    stroke: #fff;
-    stroke-width: 0.5;
+    fill: #ffffff;
+    fill-opacity: 1.0;
+    stroke: none;
+    pointer-events: none;
 }
 
 .timezone {
@@ -94,7 +88,7 @@ h1 {
 
 .timezone-card.expanded {
     grid-column: span 2;
-    grid-row: span 2;
+    grid-row: span 3;
     padding: 1.25rem;
     box-shadow: 0 8px 24px rgba(0,0,0,0.2);
 }
@@ -160,7 +154,24 @@ h1 {
 .time-info {
     color: rgba(255,255,255,0.9);
     font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.wiki-link {
+    display: inline-block;
+    color: rgba(255,255,255,0.95);
+    font-size: 0.85rem;
+    text-decoration: none;
     margin-bottom: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background-color: rgba(255,255,255,0.2);
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.wiki-link:hover {
+    background-color: rgba(255,255,255,0.3);
+    text-decoration: none;
 }
 
 .cities-list {

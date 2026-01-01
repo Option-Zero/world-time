@@ -10,7 +10,7 @@ class TimeZoneMap {
         this.highlightedTz = null;
 
         this.projection = d3.geoNaturalEarth1()
-            .scale(190)
+            .scale(210)
             .translate([this.width / 2, this.mapCenterY]);
 
         this.path = d3.geoPath().projection(this.projection);
@@ -33,30 +33,44 @@ class TimeZoneMap {
         // Add defs for patterns
         const defs = this.svg.append('defs');
 
-        // Crosshatch pattern for fractional offset timezones
-        const pattern = defs.append('pattern')
+        // Crosshatch pattern for quarter-hour offset timezones (:15, :45)
+        const crosshatch = defs.append('pattern')
             .attr('id', 'crosshatch')
             .attr('patternUnits', 'userSpaceOnUse')
             .attr('width', 8)
             .attr('height', 8);
 
         // Diagonal lines going one way
-        pattern.append('path')
+        crosshatch.append('path')
             .attr('d', 'M0,0 l8,8 M-2,6 l4,4 M6,-2 l4,4')
             .attr('stroke', '#ffffff')
-            .attr('stroke-width', 1)
-            .attr('opacity', 0.5);
+            .attr('stroke-width', 0.8)
+            .attr('opacity', 0.25);
 
         // Diagonal lines going the other way
-        pattern.append('path')
+        crosshatch.append('path')
             .attr('d', 'M0,8 l8,-8 M-2,2 l4,-4 M6,10 l4,-4')
             .attr('stroke', '#ffffff')
-            .attr('stroke-width', 1)
-            .attr('opacity', 0.5);
+            .attr('stroke-width', 0.8)
+            .attr('opacity', 0.25);
 
-        // Add groups for layering
-        this.svg.append('g').attr('class', 'countries-group');
+        // Diagonal pattern for half-hour offset timezones (:30)
+        const diagonal = defs.append('pattern')
+            .attr('id', 'diagonal')
+            .attr('patternUnits', 'userSpaceOnUse')
+            .attr('width', 8)
+            .attr('height', 8);
+
+        diagonal.append('path')
+            .attr('d', 'M0,0 l8,8 M-2,6 l4,4 M6,-2 l4,4')
+            .attr('stroke', '#ffffff')
+            .attr('stroke-width', 0.8)
+            .attr('opacity', 0.25);
+
+        // Add groups for layering (order matters - last is on top)
         this.svg.append('g').attr('class', 'timezones-group');
+        this.svg.append('g').attr('class', 'countries-group');
+        this.svg.append('g').attr('class', 'country-borders-group');
         this.svg.append('g').attr('class', 'labels-group');
     }
 
@@ -85,7 +99,9 @@ class TimeZoneMap {
 
             const group = grouped.get(offset);
             group.geometries.push(feature.geometry);
-            if (feature.properties.name) group.names.push(feature.properties.name);
+            if (feature.properties.name) {
+                group.names.push(feature.properties.name);
+            }
             if (feature.properties.cities) {
                 feature.properties.cities.forEach(city => group.cities.add(city));
             }
@@ -127,8 +143,10 @@ class TimeZoneMap {
     }
 
     render() {
-        this.renderCountries();
         this.renderTimezones();
+        this.renderCountries();
+        this.renderCountryBorders();
+        this.renderTimezoneCallouts();
         this.renderTimezoneGrid();
     }
 
@@ -139,7 +157,26 @@ class TimeZoneMap {
             .data(this.countries.features)
             .join('path')
             .attr('class', 'country')
-            .attr('d', this.path);
+            .attr('d', this.path)
+            .style('fill', '#ffffff')
+            .style('fill-opacity', 0.4)
+            .style('stroke', 'none')
+            .style('pointer-events', 'none');
+    }
+
+    renderCountryBorders() {
+        const bordersGroup = this.svg.select('.country-borders-group');
+
+        bordersGroup.selectAll('path')
+            .data(this.countries.features)
+            .join('path')
+            .attr('class', 'country-border')
+            .attr('d', this.path)
+            .style('fill', 'none')
+            .style('stroke', '#333')
+            .style('stroke-width', 0.5)
+            .style('stroke-opacity', 0.4)
+            .style('pointer-events', 'none');
     }
 
     renderTimezones() {
@@ -152,16 +189,12 @@ class TimeZoneMap {
             .attr('class', 'timezone')
             .attr('d', d => this.path({ type: 'Feature', geometry: d.geometry }))
             .attr('data-offset', d => d.offset)
-            .style('fill', d => {
-                const color = d3.color(this.colorScale(d.offset));
-                color.opacity = 0.3;
-                return color;
-            })
+            .style('fill', d => this.colorScale(d.offset))
             .on('mouseover', (event, d) => this.handleTimezoneHover(d))
             .on('mouseout', () => this.handleTimezoneLeave())
-            .on('click', (event, d) => this.handleTimezoneClick(d));
+            .on('click', (event, d) => this.handleCardClick(d));
 
-        // Add crosshatch overlay for fractional offset timezones
+        // Add pattern overlay for fractional offset timezones
         const fractionalTzs = this.timezones.filter(tz => tz.offset % 1 !== 0);
 
         timezonesGroup.selectAll('path.timezone-pattern')
@@ -170,150 +203,192 @@ class TimeZoneMap {
             .attr('class', 'timezone-pattern')
             .attr('d', d => this.path({ type: 'Feature', geometry: d.geometry }))
             .attr('data-offset', d => d.offset)
-            .style('fill', 'url(#crosshatch)')
+            .style('fill', d => {
+                const fraction = Math.abs(d.offset % 1);
+                // Half-hour offsets (:30) get diagonal, quarter-hour (:15, :45) get crosshatch
+                if (Math.abs(fraction - 0.5) < 0.01) {
+                    return 'url(#diagonal)';
+                } else {
+                    return 'url(#crosshatch)';
+                }
+            })
             .style('pointer-events', 'none'); // Don't interfere with base timezone events
     }
 
-    renderLabels() {
+    renderTimezoneCallouts() {
         const labelsGroup = this.svg.select('.labels-group');
-        const margin = 10;
-        const topLabelY = 50; // Top row position
-        const bottomLabelY = this.height - 50; // Bottom row position
+        labelsGroup.selectAll('*').remove(); // Clear existing callouts
 
-        // Calculate centroid and bounds for each timezone
-        const tzWithGeometry = this.timezones.map(tz => {
+        // Group timezones by their time block (same as color scheme)
+        const blocks = {
+            'midnight': [],
+            'earlyMorning': [],
+            'morning': [],
+            'afternoon': [],
+            'evening': [],
+            'night': []
+        };
+
+        this.timezones.forEach(tz => {
+            const hour = ColorUtils.getHourInTimezone(tz.offset);
+            if (hour >= 0 && hour < 4) blocks.midnight.push(tz);
+            else if (hour >= 4 && hour < 8) blocks.earlyMorning.push(tz);
+            else if (hour >= 8 && hour < 12) blocks.morning.push(tz);
+            else if (hour >= 12 && hour < 16) blocks.afternoon.push(tz);
+            else if (hour >= 16 && hour < 20) blocks.evening.push(tz);
+            else blocks.night.push(tz);
+        });
+
+        // For each block, draw a callout for the first timezone that starts the block
+        Object.entries(blocks).forEach(([blockName, block]) => {
+            if (block.length === 0) return;
+
+            // Sort by offset
+            block.sort((a, b) => a.offset - b.offset);
+
+            // Find the first timezone that actually starts this block (hour is 0, 4, 8, 12, 16, or 20)
+            const blockStartHours = {
+                'midnight': 0,
+                'earlyMorning': 4,
+                'morning': 8,
+                'afternoon': 12,
+                'evening': 16,
+                'night': 20
+            };
+
+            const startHour = blockStartHours[blockName];
+            const tz = block.find(t => ColorUtils.getHourInTimezone(t.offset) === startHour);
+
+            if (!tz) return; // No timezone starts exactly at this block boundary
+
+            // Calculate bounds and get the top (northernmost) point
             const bounds = d3.geoBounds({ type: 'Feature', geometry: tz.geometry });
             const centroid = d3.geoCentroid({ type: 'Feature', geometry: tz.geometry });
-            const projected = this.projection(centroid);
 
-            // Find northernmost and southernmost points
-            const north = this.projection([centroid[0], bounds[1][1]]);
-            const south = this.projection([centroid[0], bounds[0][1]]);
+            // Use the centroid longitude but the northernmost latitude
+            const topPoint = [centroid[0], bounds[1][1]];
+            const projected = this.projection(topPoint);
 
-            return {
-                ...tz,
-                centroid: projected,
-                north: north,
-                south: south,
-                bounds: bounds
-            };
+            if (!projected || projected[0] < 0 || projected[0] > this.width) return;
+
+            const calloutY = 30; // Position above the map
+            const color = this.colorScale(tz.offset);
+
+            // Draw vertical line
+            labelsGroup.append('line')
+                .attr('class', 'callout-line')
+                .attr('x1', projected[0])
+                .attr('y1', projected[1])
+                .attr('x2', projected[0])
+                .attr('y2', calloutY)
+                .attr('stroke', color)
+                .attr('stroke-width', 1.5)
+                .attr('opacity', 0.7);
+
+            // Add time label
+            labelsGroup.append('text')
+                .attr('class', 'callout-time')
+                .attr('x', projected[0])
+                .attr('y', calloutY - 5)
+                .attr('text-anchor', 'middle')
+                .attr('font-size', '11px')
+                .attr('font-weight', 'bold')
+                .attr('fill', color)
+                .attr('id', 'callout-time-' + tz.offset.toString().replace('.', '_').replace('-', 'neg'))
+                .text(this.getCurrentTimeShort(tz.offset));
         });
+    }
 
-        // Sort by longitude (x position) for left-to-right layout
-        const sortedTz = [...tzWithGeometry].sort((a, b) => a.centroid[0] - b.centroid[0]);
+    renderTimezoneGrid() {
+        const container = d3.select('#timezone-grid');
+        container.html('');
 
-        // Distribute labels: bottom row first, then top row, then corners
-        const bottomRow = [];
-        const topRow = [];
-        const corners = [];
+        const sorted = [...this.timezones].sort((a, b) => a.offset - b.offset);
 
-        const labelsPerRow = Math.ceil(sortedTz.length / 2);
+        sorted.forEach(tz => {
+            const card = container.append('div')
+                .attr('class', 'timezone-card')
+                .attr('data-offset', tz.offset)
+                .style('background-color', this.colorScale(tz.offset))
+                .on('click', () => this.handleCardClick(tz))
+                .on('mouseover', () => this.handleTimezoneHover(tz))
+                .on('mouseout', () => this.handleTimezoneLeave());
 
-        sortedTz.forEach((tz, i) => {
-            if (i < labelsPerRow) {
-                bottomRow.push(tz);
-            } else if (i < labelsPerRow * 2) {
-                topRow.push(tz);
+            if (tz.offset % 1 !== 0) {
+                const fraction = Math.abs(tz.offset % 1);
+                // Half-hour offsets (:30) get single diagonal, quarter-hour (:15, :45) get crosshatch
+                if (Math.abs(fraction - 0.5) < 0.01) {
+                    card.style('background-image', 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 6px)');
+                } else {
+                    card.style('background-image', 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 6px), repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 6px)');
+                }
+            }
+
+            card.append('div').attr('class', 'pin-indicator').text('📌');
+
+            const header = card.append('div').attr('class', 'card-header');
+            const abbreviatedOffset = tz.offsetString.replace('UTC', '');
+            header.append('div').attr('class', 'offset').text(abbreviatedOffset);
+            header.append('div')
+                .attr('class', 'time-compact')
+                .attr('id', 'time-compact-' + tz.offset.toString().replace('.', '_').replace('-', 'neg'))
+                .text(this.getCurrentTimeShort(tz.offset));
+
+            const expanded = card.append('div').attr('class', 'expanded-content');
+            expanded.append('div')
+                .attr('class', 'time-display')
+                .attr('id', 'time-full-' + tz.offset.toString().replace('.', '_').replace('-', 'neg'))
+                .text(this.getCurrentTimeFull(tz.offset));
+
+            const browserOffset = -new Date().getTimezoneOffset() / 60;
+            const relativeOffset = tz.offset - browserOffset;
+            let relativeText = 'Same as your timezone';
+
+            if (relativeOffset > 0) {
+                const hours = Math.floor(Math.abs(relativeOffset));
+                const minutes = Math.round((Math.abs(relativeOffset) % 1) * 60);
+                relativeText = minutes > 0 ? hours + 'h ' + minutes + 'm ahead of your timezone' : hours + ' hours ahead of your timezone';
+            } else if (relativeOffset < 0) {
+                const hours = Math.floor(Math.abs(relativeOffset));
+                const minutes = Math.round((Math.abs(relativeOffset) % 1) * 60);
+                relativeText = minutes > 0 ? hours + 'h ' + minutes + 'm behind your timezone' : hours + ' hours behind your timezone';
+            }
+
+            expanded.append('div').attr('class', 'time-info').text(relativeText);
+
+            // Add Wikipedia link
+            const wikiUrl = this.getWikipediaUrl(tz.offset);
+            expanded.append('a')
+                .attr('class', 'wiki-link')
+                .attr('href', wikiUrl)
+                .attr('target', '_blank')
+                .attr('rel', 'noopener noreferrer')
+                .text('Wikipedia →');
+
+            // Show cities if available
+            if (tz.cities && tz.cities.length > 0) {
+                const citiesList = expanded.append('div').attr('class', 'cities-list');
+                const citiesContainer = citiesList.append('div').attr('class', 'cities');
+                tz.cities.slice(0, 8).forEach(city => {
+                    citiesContainer.append('span').attr('class', 'city-tag').text(city);
+                });
+            } else if (tz.names && tz.names.length > 0) {
+                // Filter out numeric-only names for display, but keep at least one location
+                const validNames = tz.names.filter(name => isNaN(parseFloat(name)));
+                const displayNames = validNames.length > 0 ? validNames : [tz.offsetString];
+
+                const locationsList = expanded.append('div').attr('class', 'cities-list');
+                const locationsContainer = locationsList.append('div').attr('class', 'cities');
+                displayNames.slice(0, 8).forEach(name => {
+                    locationsContainer.append('span').attr('class', 'city-tag').text(name);
+                });
             } else {
-                corners.push(tz);
+                // Fallback: show the offset string
+                const locationsList = expanded.append('div').attr('class', 'cities-list');
+                const locationsContainer = locationsList.append('div').attr('class', 'cities');
+                locationsContainer.append('span').attr('class', 'city-tag').text(tz.offsetString);
             }
         });
-
-        // Render bottom row
-        this.renderLabelRow(labelsGroup, bottomRow, bottomLabelY, 'bottom');
-
-        // Render top row
-        this.renderLabelRow(labelsGroup, topRow, topLabelY, 'top');
-
-        // Render corner labels (if any overflow)
-        corners.forEach((tz, i) => {
-            const x = i % 2 === 0 ? margin + 50 : this.width - margin - 50;
-            const y = i < 2 ? topLabelY : bottomLabelY;
-            this.renderLabel(labelsGroup, tz, x, y, 'corner');
-        });
-    }
-
-    renderLabelRow(container, timezones, y, position) {
-        const spacing = this.width / (timezones.length + 1);
-
-        timezones.forEach((tz, i) => {
-            const x = (i + 1) * spacing;
-            this.renderLabel(container, tz, x, y, position);
-        });
-    }
-
-    renderLabel(container, tz, x, y, position) {
-        const color = this.colorScale(tz.offset);
-
-        // Create label group
-        const labelGroup = container.append('g')
-            .attr('class', 'timezone-label')
-            .attr('data-offset', tz.offset)
-            .on('mouseover', () => this.handleTimezoneHover(tz))
-            .on('mouseout', () => this.handleTimezoneLeave())
-            .on('click', () => this.handleTimezoneClick(tz));
-
-        // Draw callout line to timezone
-        const targetPoint = position === 'top' ? tz.north : tz.south;
-        if (targetPoint && targetPoint[0] >= 0 && targetPoint[0] <= this.width) {
-            labelGroup.append('line')
-                .attr('class', 'callout-line')
-                .attr('x1', x)
-                .attr('y1', y)
-                .attr('x2', targetPoint[0])
-                .attr('y2', targetPoint[1])
-                .attr('stroke', color)
-                .attr('stroke-width', 1)
-                .attr('stroke-dasharray', '2,2')
-                .attr('opacity', 0.6);
-        }
-
-        // Background rectangle - narrower
-        const bgWidth = 55;
-        const bgHeight = 30;
-        labelGroup.append('rect')
-            .attr('x', x - bgWidth / 2)
-            .attr('y', y - bgHeight / 2)
-            .attr('width', bgWidth)
-            .attr('height', bgHeight)
-            .attr('fill', color)
-            .attr('opacity', 0.9)
-            .attr('rx', 4);
-
-        // Add crosshatch overlay for fractional offset timezones
-        if (tz.offset % 1 !== 0) {
-            labelGroup.append('rect')
-                .attr('x', x - bgWidth / 2)
-                .attr('y', y - bgHeight / 2)
-                .attr('width', bgWidth)
-                .attr('height', bgHeight)
-                .attr('fill', 'url(#crosshatch)')
-                .attr('rx', 4)
-                .style('pointer-events', 'none');
-        }
-
-        // Abbreviated offset text (e.g., "+8" instead of "UTC+8")
-        const abbreviatedOffset = tz.offsetString.replace('UTC', '');
-        labelGroup.append('text')
-            .attr('class', 'label-offset')
-            .attr('x', x)
-            .attr('y', y - 3)
-            .attr('text-anchor', 'middle')
-            .attr('fill', '#fff')
-            .attr('font-size', '11px')
-            .attr('font-weight', 'bold')
-            .text(abbreviatedOffset);
-
-        // Time text
-        labelGroup.append('text')
-            .attr('class', 'label-time')
-            .attr('x', x)
-            .attr('y', y + 8)
-            .attr('text-anchor', 'middle')
-            .attr('fill', '#fff')
-            .attr('font-size', '10px')
-            .attr('id', `time-label-${tz.offset.toString().replace('.', '_').replace('-', 'neg')}`)
-            .text(this.getCurrentTime(tz.offset));
     }
 
     getCurrentTime(offset) {
@@ -328,6 +403,34 @@ class TimeZoneMap {
         });
     }
 
+    getCurrentTimeShort(offset) {
+        const now = new Date();
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const tzTime = new Date(utc + (3600000 * offset));
+        return tzTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    }
+
+    getCurrentTimeFull(offset) {
+        const now = new Date();
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const tzTime = new Date(utc + (3600000 * offset));
+        return tzTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+    }
+
+    getWikipediaUrl(offset) {
+        // Format offset for Wikipedia URL (e.g., UTC+05:30 or UTC−09:00)
+        const absOffset = Math.abs(offset);
+        const hours = Math.floor(absOffset);
+        const minutes = Math.round((absOffset % 1) * 60);
+
+        const sign = offset >= 0 ? '+' : '−'; // Note: using Unicode minus sign (U+2212)
+        const hoursStr = hours.toString().padStart(2, '0');
+        const minutesStr = minutes.toString().padStart(2, '0');
+
+        const utcString = `UTC${sign}${hoursStr}:${minutesStr}`;
+        return `https://en.wikipedia.org/wiki/${encodeURIComponent(utcString)}`;
+    }
+
     startTimeClock() {
         // Update all times every second
         setInterval(() => {
@@ -336,54 +439,26 @@ class TimeZoneMap {
     }
 
     updateAllTimes() {
-        // Update labels on map
+        // Update compact times on cards
         this.timezones.forEach(tz => {
-            const labelId = `time-label-${tz.offset.toString().replace('.', '_').replace('-', 'neg')}`;
-            const label = this.svg.select(`#${labelId}`);
-            if (!label.empty()) {
-                label.text(this.getCurrentTime(tz.offset));
-            }
-        });
-
-        // Update panel times
-        d3.selectAll('.time-display').each(function() {
-            const offset = parseFloat(this.dataset.offset);
-            const time = new Date();
-            const utc = time.getTime() + (time.getTimezoneOffset() * 60000);
-            const tzTime = new Date(utc + (3600000 * offset));
-
-            this.textContent = tzTime.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-            });
-        });
-
-        // Update relative time info in panels
-        d3.selectAll('.time-info').each(function() {
-            const offset = parseFloat(this.dataset.offset);
-            const browserOffset = -new Date().getTimezoneOffset() / 60;
-            const relativeOffset = offset - browserOffset;
-
-            let relativeText;
-            if (Math.abs(relativeOffset) < 0.1) {
-                relativeText = 'Same as your timezone';
-            } else if (relativeOffset > 0) {
-                const hours = Math.floor(relativeOffset);
-                const minutes = Math.round((relativeOffset % 1) * 60);
-                relativeText = minutes > 0
-                    ? `${hours}h ${minutes}m ahead of your timezone`
-                    : `${hours} hours ahead of your timezone`;
-            } else {
-                const hours = Math.floor(Math.abs(relativeOffset));
-                const minutes = Math.round((Math.abs(relativeOffset) % 1) * 60);
-                relativeText = minutes > 0
-                    ? `${hours}h ${minutes}m behind your timezone`
-                    : `${hours} hours behind your timezone`;
+            const compactId = 'time-compact-' + tz.offset.toString().replace('.', '_').replace('-', 'neg');
+            const compactEl = document.getElementById(compactId);
+            if (compactEl) {
+                compactEl.textContent = this.getCurrentTimeShort(tz.offset);
             }
 
-            this.textContent = relativeText;
+            const fullId = 'time-full-' + tz.offset.toString().replace('.', '_').replace('-', 'neg');
+            const fullEl = document.getElementById(fullId);
+            if (fullEl) {
+                fullEl.textContent = this.getCurrentTimeFull(tz.offset);
+            }
+
+            // Update callout times
+            const calloutId = 'callout-time-' + tz.offset.toString().replace('.', '_').replace('-', 'neg');
+            const calloutLabel = this.svg.select('#' + calloutId);
+            if (!calloutLabel.empty()) {
+                calloutLabel.text(this.getCurrentTimeShort(tz.offset));
+            }
         });
     }
 
@@ -402,145 +477,31 @@ class TimeZoneMap {
         this.svg.selectAll('.timezone')
             .classed('highlighted', d => d.offset === this.highlightedTz);
 
-        // Highlight corresponding label
+        // Highlight corresponding card
         const highlightedOffset = this.highlightedTz;
-        this.svg.selectAll('.timezone-label')
-            .classed('highlighted', function() {
-                return parseFloat(this.dataset.offset) === highlightedOffset;
-            });
-
-        // Highlight corresponding panel
-        d3.selectAll('.timezone-panel')
+        d3.selectAll('.timezone-card')
             .classed('highlighted', function() {
                 return parseFloat(this.dataset.offset) === highlightedOffset;
             });
     }
 
-    handleTimezoneClick(tz) {
-        // Check if panel already exists (only check in timezone-panels container)
-        const existingPanel = d3.select(`#timezone-panels .timezone-panel[data-offset="${tz.offset}"]`);
-        if (!existingPanel.empty()) {
-            // Panel exists, scroll to it and highlight briefly
-            existingPanel.node().scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            return;
-        }
+    handleCardClick(tz) {
+        const card = d3.select('#timezone-grid .timezone-card[data-offset="' + tz.offset + '"]');
+        const isExpanded = card.classed('expanded');
+        const isPinned = card.classed('pinned');
 
-        this.createTimezonePanel(tz);
-    }
-
-    createTimezonePanel(tz) {
-        const container = d3.select('#timezone-panels');
-        const browserOffset = -new Date().getTimezoneOffset() / 60;
-        const relativeOffset = tz.offset - browserOffset;
-
-        let relativeText;
-        if (Math.abs(relativeOffset) < 0.1) {
-            relativeText = 'Same as your timezone';
-        } else if (relativeOffset > 0) {
-            const hours = Math.floor(relativeOffset);
-            const minutes = Math.round((relativeOffset % 1) * 60);
-            relativeText = minutes > 0
-                ? `${hours}h ${minutes}m ahead of your timezone`
-                : `${hours} hours ahead of your timezone`;
+        if (isExpanded) {
+            card.classed('pinned', !isPinned);
+            if (!isPinned) {
+                this.pinnedTimezones.add(tz.offset);
+            } else {
+                this.pinnedTimezones.delete(tz.offset);
+                card.classed('expanded', false);
+            }
         } else {
-            const hours = Math.floor(Math.abs(relativeOffset));
-            const minutes = Math.round((Math.abs(relativeOffset) % 1) * 60);
-            relativeText = minutes > 0
-                ? `${hours}h ${minutes}m behind your timezone`
-                : `${hours} hours behind your timezone`;
+            d3.selectAll('#timezone-grid .timezone-card:not(.pinned)').classed('expanded', false);
+            card.classed('expanded', true);
         }
-
-        const panel = container.append('div')
-            .attr('class', 'timezone-panel')
-            .attr('data-offset', tz.offset)
-            .on('mouseover', () => {
-                this.highlightedTz = tz.offset;
-                this.updateHighlights();
-            })
-            .on('mouseout', () => {
-                this.highlightedTz = null;
-                this.updateHighlights();
-            });
-
-        const header = panel.append('div')
-            .attr('class', 'panel-header');
-
-        header.append('div')
-            .attr('class', 'panel-title')
-            .text(tz.offsetString);
-
-        const controls = header.append('div')
-            .attr('class', 'panel-controls');
-
-        const pinBtn = controls.append('button')
-            .attr('class', 'pin-btn')
-            .text('📌 Pin')
-            .on('click', (event) => {
-                event.stopPropagation();
-                this.togglePin(tz.offset, pinBtn, panel);
-            });
-
-        controls.append('button')
-            .attr('class', 'close-btn')
-            .text('✕')
-            .on('click', (event) => {
-                event.stopPropagation();
-                this.closePanel(tz.offset, panel);
-            });
-
-        const content = panel.append('div')
-            .attr('class', 'panel-content');
-
-        content.append('div')
-            .attr('class', 'time-display')
-            .attr('data-offset', tz.offset)
-            .text(this.getCurrentTime(tz.offset));
-
-        content.append('div')
-            .attr('class', 'time-info')
-            .attr('data-offset', tz.offset)
-            .text(relativeText);
-
-        if (tz.names && tz.names.length > 0) {
-            content.append('div')
-                .style('margin-top', '0.5rem')
-                .style('font-size', '0.9rem')
-                .style('color', '#666')
-                .html(`<strong>Timezone:</strong> ${tz.names.join(', ')}`);
-        }
-
-        if (tz.cities && tz.cities.length > 0) {
-            const citiesList = content.append('div')
-                .attr('class', 'cities-list');
-
-            citiesList.append('h3').text('Major Cities');
-
-            const citiesContainer = citiesList.append('div')
-                .attr('class', 'cities');
-
-            tz.cities.forEach(city => {
-                citiesContainer.append('span')
-                    .attr('class', 'city-tag')
-                    .text(city);
-            });
-        }
-    }
-
-    togglePin(offset, button, panel) {
-        if (this.pinnedTimezones.has(offset)) {
-            this.pinnedTimezones.delete(offset);
-            button.classed('pinned', false);
-            button.text('📌 Pin');
-        } else {
-            this.pinnedTimezones.add(offset);
-            button.classed('pinned', true);
-            button.text('📌 Pinned');
-        }
-    }
-
-    closePanel(offset, panel) {
-        this.pinnedTimezones.delete(offset);
-        panel.remove();
     }
 
     setColorScheme(schemeFunction) {
