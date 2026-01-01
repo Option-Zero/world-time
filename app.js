@@ -282,6 +282,18 @@ class TimeZoneMap {
             .attr('opacity', 0.9)
             .attr('rx', 4);
 
+        // Add crosshatch overlay for fractional offset timezones
+        if (tz.offset % 1 !== 0) {
+            labelGroup.append('rect')
+                .attr('x', x - bgWidth / 2)
+                .attr('y', y - bgHeight / 2)
+                .attr('width', bgWidth)
+                .attr('height', bgHeight)
+                .attr('fill', 'url(#crosshatch)')
+                .attr('rx', 4)
+                .style('pointer-events', 'none');
+        }
+
         // Abbreviated offset text (e.g., "+8" instead of "UTC+8")
         const abbreviatedOffset = tz.offsetString.replace('UTC', '');
         labelGroup.append('text')
@@ -541,38 +553,46 @@ class TimeZoneMap {
 
 // OKLCH Color Utilities
 const ColorUtils = {
-    // Convert OKLCH to RGB
+    // Convert OKLCH to RGB using proper OKLab color space
     // L: 0-1 (lightness), C: 0-0.4 (chroma), H: 0-360 (hue)
     oklchToRgb(l, c, h) {
-        // Convert OKLCH to Lab
+        // OKLCH to OKLab
         const hRad = (h * Math.PI) / 180;
         const a = c * Math.cos(hRad);
         const b = c * Math.sin(hRad);
 
-        // Convert OKLab to linear RGB (simplified conversion)
-        // This is an approximation - good enough for our purposes
-        const L = l;
-        const M = l - 0.1618 * a - 0.0419 * b;
-        const S = l - 0.0419 * a + 0.1618 * b;
+        // OKLab to linear RGB using correct matrices
+        // First: OKLab -> LMS (cone response)
+        const l_ = l + 0.3963377774 * a + 0.2158037573 * b;
+        const m_ = l - 0.1055613458 * a - 0.0638541728 * b;
+        const s_ = l - 0.0894841775 * a - 1.2914855480 * b;
 
-        let r = 4.0767 * L - 3.3077 * M + 0.2310 * S;
-        let g = -1.2684 * L + 2.6097 * M - 0.3413 * S;
-        let bl = -0.0042 * L - 0.7034 * M + 1.7076 * S;
+        const l3 = l_ * l_ * l_;
+        const m3 = m_ * m_ * m_;
+        const s3 = s_ * s_ * s_;
 
-        // Apply gamma correction
-        const gammaCorrect = (c) => {
-            c = Math.max(0, Math.min(1, c));
-            return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1/2.4) - 0.055;
+        // LMS to linear RGB
+        let r = +4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3;
+        let g = -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3;
+        let bl = -0.0041960863 * l3 - 0.7034186147 * m3 + 1.7076147010 * s3;
+
+        // Linear RGB to sRGB (gamma correction)
+        const toSRGB = (c) => {
+            const abs = Math.abs(c);
+            if (abs > 0.0031308) {
+                return (Math.sign(c) || 1) * (1.055 * Math.pow(abs, 1 / 2.4) - 0.055);
+            }
+            return 12.92 * c;
         };
 
-        r = Math.round(gammaCorrect(r) * 255);
-        g = Math.round(gammaCorrect(g) * 255);
-        bl = Math.round(gammaCorrect(bl) * 255);
+        r = toSRGB(r);
+        g = toSRGB(g);
+        bl = toSRGB(bl);
 
-        // Clamp values
-        r = Math.max(0, Math.min(255, r));
-        g = Math.max(0, Math.min(255, g));
-        bl = Math.max(0, Math.min(255, bl));
+        // Convert to 0-255 and clamp
+        r = Math.max(0, Math.min(255, Math.round(r * 255)));
+        g = Math.max(0, Math.min(255, Math.round(g * 255)));
+        bl = Math.max(0, Math.min(255, Math.round(bl * 255)));
 
         return `rgb(${r}, ${g}, ${bl})`;
     },
