@@ -689,14 +689,14 @@ const ColorSchemes = {
             // Sort within each block by offset
             Object.values(blocks).forEach(block => block.sort((a, b) => a.offset - b.offset));
 
-            // Define color parameters for each time block (higher chroma for saturation)
+            // Define color parameters for each time block - Natural Sky Progression v5 (lower saturation)
             const blockColors = {
-                midnight:     { baseH: 240, baseC: 0.18, baseL: 0.50 },  // Dark blue
-                earlyMorning: { baseH: 35,  baseC: 0.16, baseL: 0.55 },  // Brown
-                morning:      { baseH: 350, baseC: 0.20, baseL: 0.65 },  // Red/pink
-                afternoon:    { baseH: 40,  baseC: 0.20, baseL: 0.70 },  // Orange
-                evening:      { baseH: 85,  baseC: 0.19, baseL: 0.80 },  // Yellow
-                night:        { baseH: 140, baseC: 0.18, baseL: 0.65 }   // Green
+                midnight:     { baseH: 240, baseC: 0.20, baseL: 0.30 },  // Deep navy blue (deep night - darkest)
+                earlyMorning: { baseH: 330, baseC: 0.16, baseL: 0.60 },  // Magenta/pink (dawn sky) - reduced saturation
+                morning:      { baseH: 210, baseC: 0.18, baseL: 0.72 },  // Sky blue (morning sky)
+                afternoon:    { baseH: 90,  baseC: 0.20, baseL: 0.85 },  // Bright yellow (midday sun)
+                evening:      { baseH: 25,  baseC: 0.16, baseL: 0.68 },  // Orange-red/coral (sunset) - reduced saturation
+                night:        { baseH: 150, baseC: 0.20, baseL: 0.52 }   // Deep green (night/forest)
             };
 
             // Assign colors within each block
