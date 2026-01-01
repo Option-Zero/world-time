@@ -42,14 +42,49 @@ class TimeZoneMap {
 
         // Load timezone data from GeoJSON file
         const tzData = await d3.json('timezones.geojson');
-        this.timezones = tzData.features.map(feature => ({
-            offset: feature.properties.offset,
-            offsetString: feature.properties.offsetString,
-            name: feature.properties.name,
-            names: [feature.properties.name],
-            cities: feature.properties.cities,
-            geometry: feature.geometry
-        }));
+
+        // Group timezones by UTC offset to reduce label clutter
+        const grouped = new Map();
+
+        tzData.features.forEach(feature => {
+            const offset = feature.properties.offset;
+            if (!grouped.has(offset)) {
+                grouped.set(offset, {
+                    offset: offset,
+                    offsetString: feature.properties.offsetString || this.formatOffset(offset),
+                    names: [],
+                    cities: new Set(),
+                    geometries: []
+                });
+            }
+
+            const group = grouped.get(offset);
+            group.geometries.push(feature.geometry);
+            if (feature.properties.name) group.names.push(feature.properties.name);
+            if (feature.properties.cities) {
+                feature.properties.cities.forEach(city => group.cities.add(city));
+            }
+        });
+
+        // Convert grouped data to timezone objects
+        this.timezones = Array.from(grouped.values()).map(group => ({
+            offset: group.offset,
+            offsetString: group.offsetString,
+            name: group.names[0] || `UTC${group.offset >= 0 ? '+' : ''}${group.offset}`,
+            names: group.names,
+            cities: Array.from(group.cities),
+            geometry: {
+                type: 'GeometryCollection',
+                geometries: group.geometries
+            }
+        })).sort((a, b) => a.offset - b.offset);
+
+        console.log(`Loaded ${this.timezones.length} timezone groups (from ${tzData.features.length} features)`);
+
+        // Create color scale for timezones
+        this.colorScale = d3.scaleSequential()
+            .domain([d3.min(this.timezones, d => d.offset), d3.max(this.timezones, d => d.offset)])
+            .interpolator(d3.interpolateRainbow);
     }
 
 
@@ -93,6 +128,7 @@ class TimeZoneMap {
             .attr('class', 'timezone')
             .attr('d', d => this.path({ type: 'Feature', geometry: d.geometry }))
             .attr('data-offset', d => d.offset)
+            .attr('stroke', d => this.colorScale(d.offset))
             .on('mouseover', (event, d) => this.handleTimezoneHover(d))
             .on('mouseout', () => this.handleTimezoneLeave())
             .on('click', (event, d) => this.handleTimezoneClick(d));
@@ -100,31 +136,40 @@ class TimeZoneMap {
 
     renderLabels() {
         const labelsGroup = this.svg.select('.labels-group');
-        const labelY = this.height - 40; // Position labels near bottom
+        const labelY = this.height - 30; // Position labels near bottom
+        const labelSpacing = this.width / this.timezones.length;
 
-        this.timezones.forEach(tz => {
-            // Calculate label position at bottom of each timezone
-            const centerLon = tz.offset * 15;
-            const labelPos = this.projection([centerLon, -60]); // Position in southern latitudes
+        this.timezones.forEach((tz, i) => {
+            // Space labels evenly across the bottom
+            const labelX = (i + 0.5) * labelSpacing;
 
-            if (labelPos && labelPos[0] >= 0 && labelPos[0] <= this.width) {
-                const labelGroup = labelsGroup.append('g')
-                    .attr('class', 'timezone-label')
-                    .attr('data-offset', tz.offset)
-                    .attr('transform', `translate(${labelPos[0]}, ${labelY})`);
+            const labelGroup = labelsGroup.append('g')
+                .attr('class', 'timezone-label')
+                .attr('data-offset', tz.offset)
+                .attr('transform', `translate(${labelX}, ${labelY})`);
 
-                // Add background rectangle for better readability
-                const offsetText = labelGroup.append('text')
-                    .attr('class', 'offset')
-                    .attr('dy', '-0.5em')
-                    .text(tz.offsetString);
+            // Color-coded background bar
+            labelGroup.append('rect')
+                .attr('x', -labelSpacing / 2 + 2)
+                .attr('y', -20)
+                .attr('width', labelSpacing - 4)
+                .attr('height', 4)
+                .attr('fill', this.colorScale(tz.offset))
+                .attr('opacity', 0.8);
 
-                const timeText = labelGroup.append('text')
-                    .attr('class', 'time')
-                    .attr('dy', '1em')
-                    .attr('id', `time-label-${tz.offset.toString().replace('.', '_')}`)
-                    .text(this.getCurrentTime(tz.offset));
-            }
+            // Offset text
+            const offsetText = labelGroup.append('text')
+                .attr('class', 'offset')
+                .attr('dy', '-0.5em')
+                .style('fill', this.colorScale(tz.offset))
+                .text(tz.offsetString);
+
+            // Time text
+            const timeText = labelGroup.append('text')
+                .attr('class', 'time')
+                .attr('dy', '1em')
+                .attr('id', `time-label-${tz.offset.toString().replace('.', '_').replace('-', 'neg')}`)
+                .text(this.getCurrentTime(tz.offset));
         });
     }
 
@@ -150,7 +195,7 @@ class TimeZoneMap {
     updateAllTimes() {
         // Update labels on map
         this.timezones.forEach(tz => {
-            const labelId = `time-label-${tz.offset.toString().replace('.', '_')}`;
+            const labelId = `time-label-${tz.offset.toString().replace('.', '_').replace('-', 'neg')}`;
             const label = this.svg.select(`#${labelId}`);
             if (!label.empty()) {
                 label.text(this.getCurrentTime(tz.offset));

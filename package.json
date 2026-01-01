@@ -7,6 +7,9 @@
     "generate-tz": "node generate-timezones-advanced.js",
     "test": "node simple-test.js"
   },
+  "dependencies": {
+    "shapefile": "^0.6.6"
+  },
   "devDependencies": {
     "playwright": "^1.40.0",
     "puppeteer": "^21.0.0"

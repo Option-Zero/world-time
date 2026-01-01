@@ -50,13 +50,14 @@ h1 {
 }
 
 .timezone {
-    fill: transparent;
+    fill: rgba(200, 200, 200, 0.1); /* Very subtle fill to capture pointer events */
     stroke: #666;
     stroke-width: 1;
     stroke-dasharray: 2,2;
     opacity: 0.6;
     cursor: pointer;
     transition: all 0.2s ease;
+    pointer-events: all; /* Capture events on the entire polygon */
 }
 
 .timezone:hover,
@@ -66,6 +67,7 @@ h1 {
     stroke-width: 2;
     stroke-dasharray: none;
     opacity: 1;
+    pointer-events: all; /* Enable fill events when highlighted */
 }
 
 .timezone-label {
