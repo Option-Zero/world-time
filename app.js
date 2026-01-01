@@ -128,7 +128,11 @@ class TimeZoneMap {
             .attr('class', 'timezone')
             .attr('d', d => this.path({ type: 'Feature', geometry: d.geometry }))
             .attr('data-offset', d => d.offset)
-            .attr('stroke', d => this.colorScale(d.offset))
+            .style('fill', d => {
+                const color = d3.color(this.colorScale(d.offset));
+                color.opacity = 0.3;
+                return color;
+            })
             .on('mouseover', (event, d) => this.handleTimezoneHover(d))
             .on('mouseout', () => this.handleTimezoneLeave())
             .on('click', (event, d) => this.handleTimezoneClick(d));
@@ -136,41 +140,127 @@ class TimeZoneMap {
 
     renderLabels() {
         const labelsGroup = this.svg.select('.labels-group');
-        const labelY = this.height - 30; // Position labels near bottom
-        const labelSpacing = this.width / this.timezones.length;
+        const margin = 10;
+        const labelHeight = 40;
 
-        this.timezones.forEach((tz, i) => {
-            // Space labels evenly across the bottom
-            const labelX = (i + 0.5) * labelSpacing;
+        // Calculate centroid and bounds for each timezone
+        const tzWithGeometry = this.timezones.map(tz => {
+            const bounds = d3.geoBounds({ type: 'Feature', geometry: tz.geometry });
+            const centroid = d3.geoCentroid({ type: 'Feature', geometry: tz.geometry });
+            const projected = this.projection(centroid);
 
-            const labelGroup = labelsGroup.append('g')
-                .attr('class', 'timezone-label')
-                .attr('data-offset', tz.offset)
-                .attr('transform', `translate(${labelX}, ${labelY})`);
+            // Find northernmost and southernmost points
+            const north = this.projection([centroid[0], bounds[1][1]]);
+            const south = this.projection([centroid[0], bounds[0][1]]);
 
-            // Color-coded background bar
-            labelGroup.append('rect')
-                .attr('x', -labelSpacing / 2 + 2)
-                .attr('y', -20)
-                .attr('width', labelSpacing - 4)
-                .attr('height', 4)
-                .attr('fill', this.colorScale(tz.offset))
-                .attr('opacity', 0.8);
-
-            // Offset text
-            const offsetText = labelGroup.append('text')
-                .attr('class', 'offset')
-                .attr('dy', '-0.5em')
-                .style('fill', this.colorScale(tz.offset))
-                .text(tz.offsetString);
-
-            // Time text
-            const timeText = labelGroup.append('text')
-                .attr('class', 'time')
-                .attr('dy', '1em')
-                .attr('id', `time-label-${tz.offset.toString().replace('.', '_').replace('-', 'neg')}`)
-                .text(this.getCurrentTime(tz.offset));
+            return {
+                ...tz,
+                centroid: projected,
+                north: north,
+                south: south,
+                bounds: bounds
+            };
         });
+
+        // Sort by longitude (x position) for left-to-right layout
+        const sortedTz = [...tzWithGeometry].sort((a, b) => a.centroid[0] - b.centroid[0]);
+
+        // Distribute labels: bottom row first, then top row, then corners
+        const bottomRow = [];
+        const topRow = [];
+        const corners = [];
+
+        const labelsPerRow = Math.ceil(sortedTz.length / 2);
+
+        sortedTz.forEach((tz, i) => {
+            if (i < labelsPerRow) {
+                bottomRow.push(tz);
+            } else if (i < labelsPerRow * 2) {
+                topRow.push(tz);
+            } else {
+                corners.push(tz);
+            }
+        });
+
+        // Render bottom row
+        this.renderLabelRow(labelsGroup, bottomRow, this.height - labelHeight, 'bottom');
+
+        // Render top row
+        this.renderLabelRow(labelsGroup, topRow, labelHeight, 'top');
+
+        // Render corner labels (if any overflow)
+        corners.forEach((tz, i) => {
+            const x = i % 2 === 0 ? margin : this.width - margin;
+            const y = i < 2 ? labelHeight : this.height - labelHeight;
+            this.renderLabel(labelsGroup, tz, x, y, 'corner');
+        });
+    }
+
+    renderLabelRow(container, timezones, y, position) {
+        const spacing = this.width / (timezones.length + 1);
+
+        timezones.forEach((tz, i) => {
+            const x = (i + 1) * spacing;
+            this.renderLabel(container, tz, x, y, position);
+        });
+    }
+
+    renderLabel(container, tz, x, y, position) {
+        const color = this.colorScale(tz.offset);
+
+        // Create label group
+        const labelGroup = container.append('g')
+            .attr('class', 'timezone-label')
+            .attr('data-offset', tz.offset);
+
+        // Draw callout line to timezone
+        const targetPoint = position === 'top' ? tz.north : tz.south;
+        if (targetPoint && targetPoint[0] >= 0 && targetPoint[0] <= this.width) {
+            labelGroup.append('line')
+                .attr('class', 'callout-line')
+                .attr('x1', x)
+                .attr('y1', y)
+                .attr('x2', targetPoint[0])
+                .attr('y2', targetPoint[1])
+                .attr('stroke', color)
+                .attr('stroke-width', 1)
+                .attr('stroke-dasharray', '2,2')
+                .attr('opacity', 0.6);
+        }
+
+        // Background rectangle
+        const bgWidth = 80;
+        const bgHeight = 32;
+        labelGroup.append('rect')
+            .attr('x', x - bgWidth / 2)
+            .attr('y', y - bgHeight / 2)
+            .attr('width', bgWidth)
+            .attr('height', bgHeight)
+            .attr('fill', color)
+            .attr('opacity', 0.9)
+            .attr('rx', 4);
+
+        // Offset text
+        labelGroup.append('text')
+            .attr('class', 'label-offset')
+            .attr('x', x)
+            .attr('y', y - 4)
+            .attr('text-anchor', 'middle')
+            .attr('fill', '#fff')
+            .attr('font-size', '11px')
+            .attr('font-weight', 'bold')
+            .text(tz.offsetString);
+
+        // Time text
+        labelGroup.append('text')
+            .attr('class', 'label-time')
+            .attr('x', x)
+            .attr('y', y + 8)
+            .attr('text-anchor', 'middle')
+            .attr('fill', '#fff')
+            .attr('font-size', '10px')
+            .attr('id', `time-label-${tz.offset.toString().replace('.', '_').replace('-', 'neg')}`)
+            .text(this.getCurrentTime(tz.offset));
     }
 
     getCurrentTime(offset) {
@@ -268,10 +358,11 @@ class TimeZoneMap {
     }
 
     handleTimezoneClick(tz) {
-        // Check if panel already exists
-        const existingPanel = d3.select(`[data-offset="${tz.offset}"]`);
+        // Check if panel already exists (only check in timezone-panels container)
+        const existingPanel = d3.select(`#timezone-panels .timezone-panel[data-offset="${tz.offset}"]`);
         if (!existingPanel.empty()) {
-            // Panel exists, just highlight it briefly
+            // Panel exists, scroll to it and highlight briefly
+            existingPanel.node().scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             return;
         }
 

@@ -50,11 +50,10 @@ h1 {
 }
 
 .timezone {
-    fill: rgba(200, 200, 200, 0.1); /* Very subtle fill to capture pointer events */
-    stroke: #666;
-    stroke-width: 1;
-    stroke-dasharray: 2,2;
-    opacity: 0.6;
+    /* fill color set by JS based on UTC offset */
+    stroke: #333;
+    stroke-width: 0.5;
+    stroke-opacity: 0.5;
     cursor: pointer;
     transition: all 0.2s ease;
     pointer-events: all; /* Capture events on the entire polygon */
@@ -62,12 +61,11 @@ h1 {
 
 .timezone:hover,
 .timezone.highlighted {
-    fill: rgba(66, 133, 244, 0.3);
-    stroke: #4285f4;
-    stroke-width: 2;
-    stroke-dasharray: none;
-    opacity: 1;
-    pointer-events: all; /* Enable fill events when highlighted */
+    /* Brighten the fill color */
+    filter: brightness(1.3);
+    stroke: #000;
+    stroke-width: 1.5;
+    stroke-opacity: 0.8;
 }
 
 .timezone-label {
