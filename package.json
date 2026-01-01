@@ -1,0 +1,12 @@
+{
+  "name": "world-map-timezone",
+  "version": "1.0.0",
+  "description": "Interactive world time zone map",
+  "scripts": {
+    "test": "node screenshot-test.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.40.0",
+    "puppeteer": "^21.0.0"
+  }
+}

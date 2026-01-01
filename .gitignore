@@ -2,3 +2,5 @@
 node_modules/
 *.log
 .env
+screenshot*.png
+pnpm-lock.yaml

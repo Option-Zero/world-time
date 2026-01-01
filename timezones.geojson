@@ -1,0 +1,1043 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": -12,
+        "offsetString": "UTC-12",
+        "name": "UTC-12",
+        "cities": [
+          "Baker Island"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -180,
+              -90
+            ],
+            [
+              -172.5,
+              -90
+            ],
+            [
+              -172.5,
+              90
+            ],
+            [
+              -180,
+              90
+            ],
+            [
+              -180,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": -11,
+        "offsetString": "UTC-11",
+        "name": "Pacific/Samoa",
+        "cities": [
+          "Pago Pago"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -172.5,
+              -90
+            ],
+            [
+              -165,
+              -90
+            ],
+            [
+              -165,
+              90
+            ],
+            [
+              -172.5,
+              90
+            ],
+            [
+              -172.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": -10,
+        "offsetString": "UTC-10",
+        "name": "Pacific/Honolulu",
+        "cities": [
+          "Honolulu"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -165,
+              -90
+            ],
+            [
+              -150,
+              -90
+            ],
+            [
+              -150,
+              90
+            ],
+            [
+              -165,
+              90
+            ],
+            [
+              -165,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": -9,
+        "offsetString": "UTC-9",
+        "name": "America/Anchorage",
+        "cities": [
+          "Anchorage"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -157.5,
+              -90
+            ],
+            [
+              -142.5,
+              -90
+            ],
+            [
+              -142.5,
+              90
+            ],
+            [
+              -157.5,
+              90
+            ],
+            [
+              -157.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": -8,
+        "offsetString": "UTC-8",
+        "name": "America/Los_Angeles",
+        "cities": [
+          "Los Angeles",
+          "San Francisco",
+          "Seattle",
+          "Vancouver"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -142.5,
+              -90
+            ],
+            [
+              -127.5,
+              -90
+            ],
+            [
+              -127.5,
+              90
+            ],
+            [
+              -142.5,
+              90
+            ],
+            [
+              -142.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": -7,
+        "offsetString": "UTC-7",
+        "name": "America/Denver",
+        "cities": [
+          "Denver",
+          "Phoenix",
+          "Calgary"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -127.5,
+              -90
+            ],
+            [
+              -112.5,
+              -90
+            ],
+            [
+              -112.5,
+              90
+            ],
+            [
+              -127.5,
+              90
+            ],
+            [
+              -127.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": -6,
+        "offsetString": "UTC-6",
+        "name": "America/Chicago",
+        "cities": [
+          "Chicago",
+          "Houston",
+          "Mexico City",
+          "Dallas"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -112.5,
+              -90
+            ],
+            [
+              -97.5,
+              -90
+            ],
+            [
+              -97.5,
+              90
+            ],
+            [
+              -112.5,
+              90
+            ],
+            [
+              -112.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": -5,
+        "offsetString": "UTC-5",
+        "name": "America/New_York",
+        "cities": [
+          "New York",
+          "Toronto",
+          "Miami",
+          "Lima",
+          "Bogotá"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -97.5,
+              -90
+            ],
+            [
+              -82.5,
+              -90
+            ],
+            [
+              -82.5,
+              90
+            ],
+            [
+              -97.5,
+              90
+            ],
+            [
+              -97.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": -4,
+        "offsetString": "UTC-4",
+        "name": "America/Santiago",
+        "cities": [
+          "Santiago",
+          "Caracas",
+          "La Paz",
+          "Halifax"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -82.5,
+              -90
+            ],
+            [
+              -60,
+              -90
+            ],
+            [
+              -60,
+              90
+            ],
+            [
+              -82.5,
+              90
+            ],
+            [
+              -82.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": -3,
+        "offsetString": "UTC-3",
+        "name": "America/Sao_Paulo",
+        "cities": [
+          "São Paulo",
+          "Buenos Aires",
+          "Rio de Janeiro"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -60,
+              -90
+            ],
+            [
+              -45,
+              -90
+            ],
+            [
+              -45,
+              90
+            ],
+            [
+              -60,
+              90
+            ],
+            [
+              -60,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": -2,
+        "offsetString": "UTC-2",
+        "name": "Atlantic/South_Georgia",
+        "cities": [
+          "South Georgia"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -45,
+              -90
+            ],
+            [
+              -30,
+              -90
+            ],
+            [
+              -30,
+              90
+            ],
+            [
+              -45,
+              90
+            ],
+            [
+              -45,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": -1,
+        "offsetString": "UTC-1",
+        "name": "Atlantic/Azores",
+        "cities": [
+          "Azores",
+          "Cape Verde"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -30,
+              -90
+            ],
+            [
+              -15,
+              -90
+            ],
+            [
+              -15,
+              90
+            ],
+            [
+              -30,
+              90
+            ],
+            [
+              -30,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": 0,
+        "offsetString": "UTC+0",
+        "name": "Europe/London",
+        "cities": [
+          "London",
+          "Dublin",
+          "Lisbon",
+          "Accra"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -15,
+              -90
+            ],
+            [
+              7.5,
+              -90
+            ],
+            [
+              7.5,
+              90
+            ],
+            [
+              -15,
+              90
+            ],
+            [
+              -15,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": 1,
+        "offsetString": "UTC+1",
+        "name": "Europe/Paris",
+        "cities": [
+          "Paris",
+          "Berlin",
+          "Rome",
+          "Madrid",
+          "Lagos"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              7.5,
+              -90
+            ],
+            [
+              22.5,
+              -90
+            ],
+            [
+              22.5,
+              90
+            ],
+            [
+              7.5,
+              90
+            ],
+            [
+              7.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": 2,
+        "offsetString": "UTC+2",
+        "name": "Europe/Athens",
+        "cities": [
+          "Athens",
+          "Cairo",
+          "Johannesburg",
+          "Helsinki"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              22.5,
+              -90
+            ],
+            [
+              37.5,
+              -90
+            ],
+            [
+              37.5,
+              90
+            ],
+            [
+              22.5,
+              90
+            ],
+            [
+              22.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": 3,
+        "offsetString": "UTC+3",
+        "name": "Europe/Moscow",
+        "cities": [
+          "Moscow",
+          "Istanbul",
+          "Riyadh",
+          "Nairobi"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              37.5,
+              -90
+            ],
+            [
+              52.5,
+              -90
+            ],
+            [
+              52.5,
+              90
+            ],
+            [
+              37.5,
+              90
+            ],
+            [
+              37.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": 4,
+        "offsetString": "UTC+4",
+        "name": "Asia/Dubai",
+        "cities": [
+          "Dubai",
+          "Baku",
+          "Tbilisi"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              52.5,
+              -90
+            ],
+            [
+              63.75,
+              -90
+            ],
+            [
+              63.75,
+              90
+            ],
+            [
+              52.5,
+              90
+            ],
+            [
+              52.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": 5,
+        "offsetString": "UTC+5",
+        "name": "Asia/Karachi",
+        "cities": [
+          "Karachi",
+          "Tashkent"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              63.75,
+              -90
+            ],
+            [
+              71.25,
+              -90
+            ],
+            [
+              71.25,
+              90
+            ],
+            [
+              63.75,
+              90
+            ],
+            [
+              63.75,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": 5.5,
+        "offsetString": "UTC+5:30",
+        "name": "Asia/Kolkata",
+        "cities": [
+          "Mumbai",
+          "Delhi",
+          "Kolkata",
+          "Bangalore"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              71.25,
+              -90
+            ],
+            [
+              78.75,
+              -90
+            ],
+            [
+              78.75,
+              90
+            ],
+            [
+              71.25,
+              90
+            ],
+            [
+              71.25,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": 6,
+        "offsetString": "UTC+6",
+        "name": "Asia/Dhaka",
+        "cities": [
+          "Dhaka",
+          "Almaty"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.75,
+              -90
+            ],
+            [
+              97.5,
+              -90
+            ],
+            [
+              97.5,
+              90
+            ],
+            [
+              78.75,
+              90
+            ],
+            [
+              78.75,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": 7,
+        "offsetString": "UTC+7",
+        "name": "Asia/Bangkok",
+        "cities": [
+          "Bangkok",
+          "Jakarta",
+          "Ho Chi Minh"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              97.5,
+              -90
+            ],
+            [
+              112.5,
+              -90
+            ],
+            [
+              112.5,
+              90
+            ],
+            [
+              97.5,
+              90
+            ],
+            [
+              97.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": 8,
+        "offsetString": "UTC+8",
+        "name": "Asia/Shanghai",
+        "cities": [
+          "Beijing",
+          "Shanghai",
+          "Hong Kong",
+          "Singapore",
+          "Perth"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              112.5,
+              -90
+            ],
+            [
+              127.5,
+              -90
+            ],
+            [
+              127.5,
+              90
+            ],
+            [
+              112.5,
+              90
+            ],
+            [
+              112.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": 9,
+        "offsetString": "UTC+9",
+        "name": "Asia/Tokyo",
+        "cities": [
+          "Tokyo",
+          "Seoul",
+          "Osaka"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              127.5,
+              -90
+            ],
+            [
+              142.5,
+              -90
+            ],
+            [
+              142.5,
+              90
+            ],
+            [
+              127.5,
+              90
+            ],
+            [
+              127.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": 10,
+        "offsetString": "UTC+10",
+        "name": "Australia/Sydney",
+        "cities": [
+          "Sydney",
+          "Melbourne",
+          "Brisbane"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              142.5,
+              -90
+            ],
+            [
+              157.5,
+              -90
+            ],
+            [
+              157.5,
+              90
+            ],
+            [
+              142.5,
+              90
+            ],
+            [
+              142.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": 11,
+        "offsetString": "UTC+11",
+        "name": "Pacific/Noumea",
+        "cities": [
+          "Noumea",
+          "Solomon Islands"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              157.5,
+              -90
+            ],
+            [
+              172.5,
+              -90
+            ],
+            [
+              172.5,
+              90
+            ],
+            [
+              157.5,
+              90
+            ],
+            [
+              157.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "offset": 12,
+        "offsetString": "UTC+12",
+        "name": "Pacific/Auckland",
+        "cities": [
+          "Auckland",
+          "Fiji"
+        ]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              172.5,
+              -90
+            ],
+            [
+              180,
+              -90
+            ],
+            [
+              180,
+              90
+            ],
+            [
+              172.5,
+              90
+            ],
+            [
+              172.5,
+              -90
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

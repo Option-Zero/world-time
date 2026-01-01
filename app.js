@@ -40,74 +40,18 @@ class TimeZoneMap {
         const worldData = await d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
         this.countries = topojson.feature(worldData, worldData.objects.countries);
 
-        // Create simplified timezone data
-        this.timezones = this.createTimezoneData();
+        // Load timezone data from GeoJSON file
+        const tzData = await d3.json('timezones.geojson');
+        this.timezones = tzData.features.map(feature => ({
+            offset: feature.properties.offset,
+            offsetString: feature.properties.offsetString,
+            name: feature.properties.name,
+            names: [feature.properties.name],
+            cities: feature.properties.cities,
+            geometry: feature.geometry
+        }));
     }
 
-    createTimezoneData() {
-        // Create timezone definitions with metadata
-        const timezones = [
-            { offset: -12, cities: ['Baker Island'], names: ['UTC-12'] },
-            { offset: -11, cities: ['Pago Pago'], names: ['Pacific/Samoa'] },
-            { offset: -10, cities: ['Honolulu'], names: ['Pacific/Honolulu'] },
-            { offset: -9, cities: ['Anchorage'], names: ['America/Anchorage'] },
-            { offset: -8, cities: ['Los Angeles', 'San Francisco', 'Seattle', 'Vancouver'], names: ['America/Los_Angeles'] },
-            { offset: -7, cities: ['Denver', 'Phoenix', 'Calgary'], names: ['America/Denver'] },
-            { offset: -6, cities: ['Chicago', 'Houston', 'Mexico City', 'Dallas'], names: ['America/Chicago'] },
-            { offset: -5, cities: ['New York', 'Toronto', 'Miami', 'Lima', 'Bogotá'], names: ['America/New_York'] },
-            { offset: -4, cities: ['Santiago', 'Caracas', 'La Paz', 'Halifax'], names: ['America/Santiago'] },
-            { offset: -3, cities: ['São Paulo', 'Buenos Aires', 'Rio de Janeiro'], names: ['America/Sao_Paulo'] },
-            { offset: -2, cities: ['South Georgia'], names: ['Atlantic/South_Georgia'] },
-            { offset: -1, cities: ['Azores', 'Cape Verde'], names: ['Atlantic/Azores'] },
-            { offset: 0, cities: ['London', 'Dublin', 'Lisbon', 'Accra'], names: ['Europe/London', 'UTC'] },
-            { offset: 1, cities: ['Paris', 'Berlin', 'Rome', 'Madrid', 'Lagos'], names: ['Europe/Paris'] },
-            { offset: 2, cities: ['Athens', 'Cairo', 'Johannesburg', 'Helsinki'], names: ['Europe/Athens'] },
-            { offset: 3, cities: ['Moscow', 'Istanbul', 'Riyadh', 'Nairobi'], names: ['Europe/Moscow'] },
-            { offset: 4, cities: ['Dubai', 'Baku', 'Tbilisi'], names: ['Asia/Dubai'] },
-            { offset: 5, cities: ['Karachi', 'Tashkent'], names: ['Asia/Karachi'] },
-            { offset: 5.5, cities: ['Mumbai', 'Delhi', 'Kolkata', 'Bangalore'], names: ['Asia/Kolkata'] },
-            { offset: 6, cities: ['Dhaka', 'Almaty'], names: ['Asia/Dhaka'] },
-            { offset: 7, cities: ['Bangkok', 'Jakarta', 'Ho Chi Minh'], names: ['Asia/Bangkok'] },
-            { offset: 8, cities: ['Beijing', 'Shanghai', 'Hong Kong', 'Singapore', 'Perth'], names: ['Asia/Shanghai'] },
-            { offset: 9, cities: ['Tokyo', 'Seoul', 'Osaka'], names: ['Asia/Tokyo'] },
-            { offset: 10, cities: ['Sydney', 'Melbourne', 'Brisbane'], names: ['Australia/Sydney'] },
-            { offset: 11, cities: ['Noumea', 'Solomon Islands'], names: ['Pacific/Noumea'] },
-            { offset: 12, cities: ['Auckland', 'Fiji'], names: ['Pacific/Auckland'] },
-            { offset: 13, cities: ['Nuku\'alofa'], names: ['Pacific/Tongatapu'] }
-        ];
-
-        // Generate polygon geometries for each timezone
-        return timezones.map(tz => {
-            const geometry = this.createTimezonePolygon(tz.offset);
-            return {
-                ...tz,
-                offsetString: this.formatOffset(tz.offset),
-                geometry: geometry
-            };
-        });
-    }
-
-    createTimezonePolygon(offset) {
-        // Create a simplified polygon for this timezone based on longitude
-        // Each timezone is roughly 15 degrees wide (360° / 24 hours)
-
-        const centerLon = offset * 15;
-        const halfWidth = 7.5;
-
-        // Create a polygon that covers the timezone band
-        const coordinates = [[
-            [centerLon - halfWidth, -90],
-            [centerLon + halfWidth, -90],
-            [centerLon + halfWidth, 90],
-            [centerLon - halfWidth, 90],
-            [centerLon - halfWidth, -90]
-        ]];
-
-        return {
-            type: 'Polygon',
-            coordinates: coordinates
-        };
-    }
 
     formatOffset(offset) {
         if (offset === 0) return 'UTC+0';
