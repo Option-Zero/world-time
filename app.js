@@ -200,14 +200,10 @@ class TimeZoneMap {
 
     renderLabelRow(container, timezones, y, position) {
         const spacing = this.width / (timezones.length + 1);
-        const staggerAmount = 15; // Vertical offset for zigzag
 
         timezones.forEach((tz, i) => {
             const x = (i + 1) * spacing;
-            // Alternate up and down for zigzag pattern
-            const yOffset = (i % 2 === 0) ? 0 : staggerAmount;
-            const adjustedY = position === 'top' ? y + yOffset : y - yOffset;
-            this.renderLabel(container, tz, x, adjustedY, position);
+            this.renderLabel(container, tz, x, y, position);
         });
     }
 
